@@ -350,11 +350,4 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.stroke();
     ctx.fillText(label, textX, jump.y - 5);
   }
-
-  // ---- El número de la carta, abajo a la derecha.
-  ctx.font = `400 34px ${FONT}`;
-  ctx.fillStyle = COLORS.light;
-  ctx.textBaseline = 'alphabetic';
-  const number = `#${system.seed}`;
-  ctx.fillText(number, system.number.x + 40 - ctx.measureText(number).width, system.number.y + 40);
 }

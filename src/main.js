@@ -57,6 +57,17 @@ const canvas = document.querySelector('[data-iksystem]');
 const panel = canvas.parentElement;
 const size = () => ({ w: panel.clientWidth, h: panel.clientHeight });
 const numberLabel = document.querySelector('[data-number]');
+const coordsLabel = document.querySelector('[data-coords]');
+// Las coordenadas: el centro de la pantalla desde el hub, en las unidades de las distancias
+// de los jump points (system.js), con signo y tres decimales.
+const COORD_UNIT = 40;
+let lastCoords = '';
+function showCoords() {
+  if (!coordsLabel) return;
+  const f = (v) => (v < 0 ? '−' : '+') + Math.abs(v / COORD_UNIT).toFixed(3).padStart(6, '0');
+  const text = `X ${f(cam.x - system.hub.x)}  Y ${f(system.hub.y - cam.y)}`;
+  if (text !== lastCoords) coordsLabel.textContent = lastCoords = text;
+}
 
 // La carta: su número sale de la dirección (#67) o, si no hay, al azar.
 // En pantallas apaisadas, la carta va a lo ancho (system.js).
@@ -319,6 +330,7 @@ const sketch = (p) => {
     const ctx = p.drawingContext;
     drawSystem(ctx, system, cam, time, p.pixelDensity());
     drawCalls(ctx, dt, p.pixelDensity());
+    showCoords();
     sound.update(dt, cam.zoom);
   };
 };

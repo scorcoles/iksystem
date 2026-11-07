@@ -38,8 +38,11 @@
     </header>
 
     <footer class="foot">
+      <!-- Encima del pie, a la derecha: el número de la carta y dónde estamos (el centro de la
+           pantalla, desde el hub, en las unidades de las distancias), que cambia al moverse. -->
+      <p class="hud"><span class="hud__seed" data-number></span><span class="hud__sep">·</span><span class="hud__coords" data-coords></span></p>
       <p>
-        <span class="foot__tag">iksystem</span><span class="foot__number" data-number></span>
+        <span class="foot__tag">iksystem</span>
         Arrastra para explorar y mantén para acercarte. Toca un planeta para llamarlo<span class="foot__sep">·</span><wbr /><span class="foot__modes"><button type="button" data-mode-prev aria-label="Carta anterior">← Prev</button><span class="foot__sep">·</span><button type="button" data-mode-next aria-label="Carta siguiente">Next →</button></span>
       </p>
     </footer>

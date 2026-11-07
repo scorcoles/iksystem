@@ -17,7 +17,6 @@
 //     entre ellos;
 //   - los PLANETAS MENORES, verdes, blancos o lima, con su código girado («E.57»); algunos
 //     con una órbita amplia, una luna que la recorre y su nombre (names.js);
-//   - y abajo a la derecha, el número de la carta.
 
 import { nameOf } from './names.js';
 
@@ -210,21 +209,16 @@ export function generate(seed, wide = false) {
   system.routes.push({ from: system.hub, to: system.capital, color: 'light' });
   system.routes.push({ from: system.jumps[Math.max(0, hubIndex - 2)], to: system.capital, color: 'light' });
 
-  // ---- El número de la carta, abajo a la derecha (su esquina queda libre).
-  system.number = { x: WIDTH - 90, y: HEIGHT - 90 };
-
   // ---- Los planetas menores, por todo el mapa, sin pisar a los grandes, ni las etiquetas
-  // de los jump points (su franja, de punta a punta), ni el número. Primero se decide cómo
+  // de los jump points (su franja, de punta a punta). Primero se decide cómo
   // es cada uno (con su órbita, ocupa más) y luego se le busca sitio.
   const taken = [...system.jumps.map((o) => ({ x: o.x, y: o.y, reach: 40 })), { x: system.capital.x, y: system.capital.y, reach: system.capital.hexagon + 10 }];
-  const n = system.number;
   const labels = system.jumps.map(labelBox);
   const capitalEnd = system.capital.x + system.capital.side * (system.capital.hexagon + 270);
   labels.push({ left: Math.min(system.capital.x, capitalEnd), right: Math.max(system.capital.x, capitalEnd), top: system.capital.y - 20, bottom: system.capital.y + 4 });
   const free = (px, py, reach) =>
     taken.every((o) => Math.hypot(o.x - px, o.y - py) > reach + o.reach + 30) &&
-    labels.every((l) => px < l.left - reach || px > l.right + reach || py < l.top - reach - 20 || py > l.bottom + reach + 20) &&
-    !(px > n.x - 160 - reach && py > n.y - 80 - reach);
+    labels.every((l) => px < l.left - reach || px > l.right + reach || py < l.top - reach - 20 || py > l.bottom + reach + 20);
   for (let k = 0, tries = 0; k < planetCount && tries < 600; tries++) {
     const planet = {
       size: r.range(4.5, 9),
