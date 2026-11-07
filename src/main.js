@@ -22,7 +22,7 @@
 //   - «Prev» y «Next» (o las flechas) pasan a la carta anterior o la siguiente.
 
 import p5 from 'p5';
-import { generate, WIDTH, HEIGHT } from './system.js';
+import { generate, TALL } from './system.js';
 import { drawSystem } from './draw.js';
 import { createSound } from './sound.js';
 import { setupShare } from './share.js';
@@ -59,9 +59,11 @@ const size = () => ({ w: panel.clientWidth, h: panel.clientHeight });
 const numberLabel = document.querySelector('[data-number]');
 
 // La carta: su número sale de la dirección (#67) o, si no hay, al azar.
+// En pantallas apaisadas, la carta va a lo ancho (system.js).
 let system = null;
+const wideScreen = () => cam.width > cam.height;
 function open(seed, { replace = false } = {}) {
-  system = generate(seed);
+  system = generate(seed, wideScreen());
   if (numberLabel) numberLabel.textContent = `#${seed}`;
   // Los colores de la página (el pie), los de la paleta de esta carta.
   const style = document.documentElement.style;
@@ -81,13 +83,13 @@ const fromHash = () => {
 };
 
 // La cámara: el punto del mapa en el centro de la pantalla, el zoom, y su parallax.
-const cam = { x: WIDTH / 2, y: HEIGHT / 2, zoom: 1, width: 1, height: 1, shiftX: 0, shiftY: 0 };
+const cam = { x: TALL.width / 2, y: TALL.height / 2, zoom: 1, width: 1, height: 1, shiftX: 0, shiftY: 0 };
 // Adónde va, cuando vuelve sola (doble toque); null si no.
 let target = { x: 0, y: 0, zoom: 1 };
 let returning = 0;
-const startZoom = () => Math.max(START_ZOOM[0], Math.min(START_ZOOM[1], cam.width / (WIDTH * START_SHARE)));
+const startZoom = () => Math.max(START_ZOOM[0], Math.min(START_ZOOM[1], cam.width / (system.width * START_SHARE)));
 // Lo más lejos: la carta entera en la pantalla, con algo de aire.
-const minZoom = () => Math.min(startZoom(), Math.min(cam.width / WIDTH, cam.height / HEIGHT) * ZOOM_OUT);
+const minZoom = () => Math.min(startZoom(), Math.min(cam.width / system.width, cam.height / system.height) * ZOOM_OUT);
 function home() {
   target = { x: system.hub.x, y: system.hub.y - cam.height * 0.08 / startZoom(), zoom: startZoom() };
 }
@@ -98,8 +100,8 @@ function clamp() {
   const hw = cam.width / 2 / cam.zoom;
   const hh = cam.height / 2 / cam.zoom;
   const fit = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v)));
-  cam.x = fit(cam.x, hw - pad, WIDTH - hw + pad);
-  cam.y = fit(cam.y, hh - pad, HEIGHT - hh + pad);
+  cam.x = fit(cam.x, hw - pad, system.width - hw + pad);
+  cam.y = fit(cam.y, hh - pad, system.height - hh + pad);
 }
 // Acercar o alejar dejando quieto el punto de la pantalla (sx, sy).
 function zoomAt(sx, sy, factor) {
@@ -282,6 +284,9 @@ const sketch = (p) => {
     p.resizeCanvas(w, h);
     cam.width = w;
     cam.height = h;
+    // Si la pantalla ha pasado de vertical a apaisada (o al revés), la misma carta, colocada
+    // de la otra manera.
+    if (system.wide !== wideScreen()) open(system.seed, { replace: true });
     clamp();
   };
   p.draw = () => {

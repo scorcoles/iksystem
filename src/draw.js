@@ -10,7 +10,7 @@
 // las líneas punteadas tampoco se separan: lo que crece son las distancias y los planetas.
 // Las estrellas van en tres capas que se mueven menos que el resto (el parallax).
 
-import { LAYERS, STAR_MARGIN, WIDTH, HEIGHT } from './system.js';
+import { LAYERS, STAR_MARGIN } from './system.js';
 
 
 const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
@@ -73,8 +73,8 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     centre.y += (movedY * depth * cam.zoom) / z;
     const cx = centre.x - (cam.shiftX * (1 - depth)) / z;
     const cy = centre.y - (cam.shiftY * (1 - depth)) / z;
-    const spanX = WIDTH * depth + STAR_MARGIN * 2;
-    const spanY = HEIGHT * depth + STAR_MARGIN * 2;
+    const spanX = system.width * depth + STAR_MARGIN * 2;
+    const spanY = system.height * depth + STAR_MARGIN * 2;
     const hw = width / 2 / z + 20;
     const hh = height / 2 / z + 20;
     // Dónde cae algo de la capa respecto a su centro, dando la vuelta por los bordes.
@@ -320,16 +320,30 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     body(jump.x, jump.y, jump.size, jump.color, jump.hub ? 2.3 : 2.1);
     const color = COLORS[jump.color];
     const s = jump.side;
-    const start = jump.x + s * jump.size * (jump.hub ? 2.3 : 2.1);
+    const ring = jump.size * (jump.hub ? 2.3 : 2.1);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = px;
+    if (jump.drop) {
+      // A lo ancho: la línea sube o baja y, al final, la etiqueta subrayada hacia la derecha.
+      const label = `${jump.name} ${jump.distance}`;
+      const w = ctx.measureText(label).width;
+      const tip = jump.y + s * jump.reach;
+      ctx.beginPath();
+      ctx.moveTo(jump.x, jump.y + s * ring);
+      ctx.lineTo(jump.x, tip);
+      ctx.lineTo(jump.x + w + 6, tip);
+      ctx.stroke();
+      ctx.fillText(label, jump.x + 4, tip - 5);
+      continue;
+    }
+    const start = jump.x + s * ring;
     const end = jump.x + s * jump.reach;
     // La etiqueta: a la izquierda, el número delante; a la derecha, detrás.
     const label = s < 0 ? `${jump.distance} ${jump.name}` : `${jump.name} ${jump.distance}`;
     const w = ctx.measureText(label).width;
     const textX = s < 0 ? end - w : end - w;
     const lineEnd = s < 0 ? end - w - 4 : end;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = px;
     ctx.beginPath();
     ctx.moveTo(start, jump.y);
     ctx.lineTo(lineEnd, jump.y);
