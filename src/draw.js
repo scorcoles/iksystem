@@ -10,28 +10,18 @@
 // las líneas punteadas tampoco se separan: lo que crece son las distancias y los planetas.
 // Las estrellas van en tres capas que se mueven menos que el resto (el parallax).
 
-import { LAYERS } from './system.js';
+import { LAYERS, STAR_MARGIN, WIDTH, HEIGHT } from './system.js';
 
 
 const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 
-// Cuánto crecen las estrellas con el zoom (1 = como el resto; 0 = nada).
+// El manto de estrellas está muy lejos: el zoom apenas le afecta. Cada capa se acerca o
+// se aleja solo una parte del zoom de la carta (un exponente: 0 = nada, 1 = como la carta),
+// de LAYER_ZOOM[0] la más lejana a LAYER_ZOOM[1] la más cercana. Así, al alejarse, en la
+// pantalla sigue habiendo las mismas estrellas, y la carta se lee por encima.
+const LAYER_ZOOM = [0.1, 0.35];
+// Cuánto crecen las estrellas con el zoom de su capa (1 = como sus distancias).
 const STAR_GROWTH = 0.5;
-
-// Al alejarse, el manto no debe tapar la carta (en la misma pantalla caben muchas más
-// estrellas). Por debajo de NEAR, tres cosas, cada vez más:
-//   - quedan menos estrellas: las que hacen falta para que haya más o menos las mismas en
-//     pantalla (nunca menos de FEWEST); las que se van, se apagan poco a poco;
-//   - niebla: las capas del fondo se aclaran, más cuanto más lejanas (FOG);
-//   - más simples: las de solo borde pasan a ser puntos, y las cruces pequeñas se van.
-// Del todo así, en FAR.
-const NEAR = 0.6;
-const FAR = 0.25;
-const FEWEST = 0.18;
-const FOG = 1.3;
-
-// Un número fijo entre 0 y 1 para cada estrella (de su sitio): el orden en que se van.
-const keepOf = (o) => (o.keep ??= ((Math.sin(o.x * 12.9898 + o.y * 78.233) * 43758.5453) % 1 + 1) % 1);
 
 // «cam»: { x, y, zoom, width, height, shiftX, shiftY } (shift: el parallax del cursor o del
 // móvil, en píxeles, para lo más cercano; las capas lejanas, menos). «time», en segundos.
@@ -60,29 +50,49 @@ export function drawSystem(ctx, system, cam, time, dpr) {
   // Un píxel de pantalla, en unidades del mapa.
   const px = 1 / cam.zoom;
 
-  // ---- El manto de estrellas, de la capa más lejana a la más cercana.
-  // Lo lejos que estamos (0 = cerca, 1 = del todo lejos) y qué parte de las estrellas queda.
-  const out = Math.max(0, Math.min(1, (NEAR - cam.zoom) / (NEAR - FAR)));
-  const share = Math.max(FEWEST, Math.min(1, (cam.zoom / NEAR) ** 2));
-  // Lo que se ve una estrella según su número: las que sobran, apagándose en un margen.
-  const kept = (o) => Math.max(0, Math.min(1, (share - keepOf(o)) / 0.08 + 1));
+  // ---- El manto de estrellas, de la capa más lejana a la más cercana. Cada capa tiene su
+  // propio centro (cam.layers), que se mueve con lo que se arrastra la carta (su parte, el
+  // parallax) pero no con el zoom; y se repite sin fin a lo ancho y a lo alto, así que
+  // nunca se le ve el borde.
+  if (!cam.layers || cam.layersFor !== system) {
+    cam.layers = LAYERS.map(({ depth }) => ({ x: cam.x * depth, y: cam.y * depth }));
+    cam.layersFor = system;
+    cam.lastX = cam.x;
+    cam.lastY = cam.y;
+  }
+  const movedX = cam.x - cam.lastX;
+  const movedY = cam.y - cam.lastY;
+  cam.lastX = cam.x;
+  cam.lastY = cam.y;
   for (const [layer, { depth }] of LAYERS.entries()) {
-    const v = camera(depth);
-    const grow = Math.pow(cam.zoom, STAR_GROWTH) / cam.zoom;
-    const fog = Math.max(0.2, 1 - out * (1 - depth) * FOG);
-    ctx.lineWidth = px;
+    const near = (depth - LAYERS[0].depth) / (LAYERS[LAYERS.length - 1].depth - LAYERS[0].depth);
+    const z = Math.pow(cam.zoom, LAYER_ZOOM[0] + (LAYER_ZOOM[1] - LAYER_ZOOM[0]) * near);
+    // En pantalla, la capa se mueve «depth» de lo que se mueve la carta.
+    const centre = cam.layers[layer];
+    centre.x += (movedX * depth * cam.zoom) / z;
+    centre.y += (movedY * depth * cam.zoom) / z;
+    const cx = centre.x - (cam.shiftX * (1 - depth)) / z;
+    const cy = centre.y - (cam.shiftY * (1 - depth)) / z;
+    const spanX = WIDTH * depth + STAR_MARGIN * 2;
+    const spanY = HEIGHT * depth + STAR_MARGIN * 2;
+    const hw = width / 2 / z + 20;
+    const hh = height / 2 / z + 20;
+    // Dónde cae algo de la capa respecto a su centro, dando la vuelta por los bordes.
+    const wrap = (v, span) => ((((v + span / 2) % span) + span) % span) - span / 2;
+    ctx.setTransform(dpr * z, 0, 0, dpr * z, (dpr * width) / 2, (dpr * height) / 2);
+    const lpx = 1 / z;
+    const grow = Math.pow(z, STAR_GROWTH) / z;
+    ctx.lineWidth = lpx;
     for (const star of system.stars) {
       if (star.layer !== layer) continue;
-      if (star.x < v.left - 10 || star.x > v.right + 10 || star.y < v.top - 10 || star.y > v.bottom + 10) continue;
-      const seen = kept(star) * fog;
-      if (seen <= 0.01) continue;
-      ctx.globalAlpha = seen * (star.twinkle ? 0.55 + 0.45 * Math.sin(time * star.twinkle + star.phase) : 1);
-      // De lejos, las de solo borde se vuelven puntos.
-      const ring = star.ring && out < 0.5;
-      const radius = star.size * grow * (ring ? 1.5 : 1);
+      const x = wrap(star.x - cx, spanX);
+      const y = wrap(star.y - cy, spanY);
+      if (x < -hw || x > hw || y < -hh || y > hh) continue;
+      ctx.globalAlpha = star.twinkle ? 0.55 + 0.45 * Math.sin(time * star.twinkle + star.phase) : 1;
+      const radius = star.size * grow * (star.ring ? 1.5 : 1);
       ctx.beginPath();
-      ctx.arc(star.x, star.y, radius, 0, Math.PI * 2);
-      if (ring) {
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      if (star.ring) {
         ctx.strokeStyle = COLORS[star.color];
         ctx.stroke();
       } else {
@@ -94,34 +104,34 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     // Las cruces y los chevrones, con las estrellas de su capa.
     for (const cross of system.crosses) {
       if (cross.layer !== layer) continue;
-      if (cross.x < v.left - 20 || cross.x > v.right + 20 || cross.y < v.top - 20 || cross.y > v.bottom + 20) continue;
-      // De lejos, las pequeñas se van (las grandes se quedan, con la niebla).
-      const small = cross.size < 8 ? 1 - Math.min(1, out * 1.6) : 1;
-      const seen = small * fog * (cross.size < 8 ? kept(cross) : 1);
-      if (seen <= 0.01) continue;
-      ctx.globalAlpha = seen;
+      const x = wrap(cross.x - cx, spanX);
+      const y = wrap(cross.y - cy, spanY);
+      if (x < -hw || x > hw || y < -hh || y > hh) continue;
       const s = cross.size * grow;
       // Las grandes, con algo más de trazo.
-      ctx.lineWidth = (cross.size > 8 ? 2 : 1.4) * px;
+      ctx.lineWidth = (cross.size > 8 ? 2 : 1.4) * lpx;
       ctx.strokeStyle = COLORS[cross.color];
       ctx.beginPath();
-      ctx.moveTo(cross.x - s, cross.y);
-      ctx.lineTo(cross.x + s, cross.y);
-      ctx.moveTo(cross.x, cross.y - s);
-      ctx.lineTo(cross.x, cross.y + s);
+      ctx.moveTo(x - s, y);
+      ctx.lineTo(x + s, y);
+      ctx.moveTo(x, y - s);
+      ctx.lineTo(x, y + s);
       ctx.stroke();
     }
+    ctx.lineWidth = lpx;
     for (const chevron of system.chevrons) {
       if (chevron.layer !== layer) continue;
-      ctx.globalAlpha = kept(chevron) * fog * (1 - out * 0.6);
+      const cxv = wrap(chevron.x - cx, spanX);
+      const cyv = wrap(chevron.y - cy, spanY);
+      if (cxv < -hw || cxv > hw || cyv < -hh || cyv > hh) continue;
       ctx.strokeStyle = COLORS[chevron.color];
       ctx.beginPath();
       const g = chevron.gap * grow;
       const s = 4 * grow;
       const arrow = (dx, dy) => {
         // Una «>» que apunta hacia fuera, en la dirección (dx, dy).
-        const x = chevron.x + dx * g;
-        const y = chevron.y + dy * g;
+        const x = cxv + dx * g;
+        const y = cyv + dy * g;
         ctx.moveTo(x - dx * s - dy * s, y - dy * s - dx * s);
         ctx.lineTo(x, y);
         ctx.lineTo(x - dx * s + dy * s, y - dy * s + dx * s);

@@ -37,9 +37,9 @@ export const PALETTES = [
 export const WIDTH = 1600;
 export const HEIGHT = 2400;
 
-// Cuánto se alarga el manto por cada lado (para que al moverse con el parallax, o al
-// alejarse del todo, no se vea su borde) y su densidad (estrellas por millón de unidades cuadradas).
-const STAR_MARGIN = 1800;
+// Cuánto se alarga el manto por cada lado (draw.js lo repite sin fin: este es el tamaño de
+// cada repetición) y su densidad (estrellas por millón de unidades cuadradas).
+export const STAR_MARGIN = 1800;
 const STAR_DENSITY = 260;
 // Las capas: lo que se mueven (1 = como los planetas) y qué parte de las estrellas lleva
 // cada una.

@@ -9,7 +9,7 @@ Demo: [scorcoles.github.io/iksystem](https://scorcoles.github.io/iksystem/) · E
 - Lo que hay: un manto de estrellas en tres capas (sólidas o solo borde, con cruces de tamaños muy distintos y chevrones); una gran corriente; el hub, un planeta con círculos concéntricos de puntos; la capital, un planeta lima en un hexágono con otro interior en discontinua; una cadena de jump points con su nombre, su distancia y sus rutas; planetas menores con su código («E.57»), algunos con órbitas, lunas y nombre. Los nombres se forman con listas de nombres enteros y medios nombres que se juntan, y a veces llevan un número romano o una letra griega («Aregon IV», «Cassen Tau»).
 - Está viva: las lunas dan vueltas, las estrellas titilan y los círculos punteados giran despacio.
 - Arrastrar mueve la carta (con inercia); la rueda o pellizcar acercan y alejan; mantener pulsado sin moverse se acerca hacia ese punto; doble toque, vuelta al principio.
-- Parallax: el cursor (o, en el móvil, inclinarlo) mueve las estrellas, cada capa a su profundidad.
+- Parallax: el cursor (o, en el móvil, inclinarlo) mueve las estrellas, cada capa a su profundidad. Y el manto está muy lejos: el zoom apenas le afecta (y se repite sin fin, sin borde), así que al alejarse la carta se lee por encima.
 - Tocar un planeta lo «llama»: una onda sale de él, con un ping de sonar.
 - Sonido (el altavoz de arriba): un acorde quieto de fondo que respira, telemetría al azar (pitidos como un mensaje de lejos, con eco), viento al arrastrar y los pings.
 
