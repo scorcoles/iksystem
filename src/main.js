@@ -31,10 +31,12 @@ import '../style.css';
 // El zoom: el más cercano, y cuánto se ve del mapa al empezar (el ancho de la pantalla
 // cubre esa parte de su ancho), sin pasar de unos límites para que se lea.
 const ZOOM_MAX = 3;
-// Cuánto cabe al alejarse del todo (1 = la carta justo entera; menos, con margen).
-const ZOOM_OUT = 0.92;
-const START_SHARE = 0.75;
+// Lo más lejos: que nunca se vea la carta entera (hay que moverse para recorrerla): la
+// pantalla cubre, como mucho, esa parte de su ancho y de su alto.
+const ZOOM_OUT = 0.7;
+const START_SHARE = 0.55;
 const START_ZOOM = [0.6, 1.1];
+const START_ROOM = 1.3;
 // Manteniendo pulsado: lo que espera antes de acercarse (segundos), cuánto puede moverse
 // el dedo sin que cuente como arrastrar (píxeles) y lo deprisa que se acerca (por segundo).
 const HOLD_DELAY = 0.35;
@@ -98,9 +100,9 @@ const cam = { x: TALL.width / 2, y: TALL.height / 2, zoom: 1, width: 1, height: 
 // Adónde va, cuando vuelve sola (doble toque); null si no.
 let target = { x: 0, y: 0, zoom: 1 };
 let returning = 0;
-const startZoom = () => Math.max(START_ZOOM[0], Math.min(START_ZOOM[1], cam.width / (system.width * START_SHARE)));
-// Lo más lejos: la carta entera en la pantalla, con algo de aire.
-const minZoom = () => Math.min(startZoom(), Math.min(cam.width / system.width, cam.height / system.height) * ZOOM_OUT);
+const minZoom = () => Math.max(cam.width / system.width, cam.height / system.height) / ZOOM_OUT;
+// Al empezar, siempre algo más cerca que el límite (START_ROOM veces), para poder alejarse.
+const startZoom = () => Math.max(minZoom() * START_ROOM, Math.max(START_ZOOM[0], Math.min(START_ZOOM[1], cam.width / (system.width * START_SHARE))));
 function home() {
   target = { x: system.hub.x, y: system.hub.y - cam.height * 0.08 / startZoom(), zoom: startZoom() };
 }
