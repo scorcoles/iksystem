@@ -225,23 +225,26 @@ export function generate(seed, wide = false) {
       color: r.weighted([['primary', 5], ['light', 3], ['accent', 3]]),
       code: r.chance(0.45) ? codeOf(r) : null,
     };
-    // Algunos, con una órbita amplia y una luna que la recorre (y alguno, dos).
+    // Algunos, con lunas: cada una en su órbita (dos lunas en la misma acabarían chocando),
+    // una más amplia que la otra; todas en el mismo sentido y, como en una órbita de
+    // verdad, las de fuera más despacio (la velocidad baja con la distancia elevada a 1,5).
+    // «radius» es la de fuera: hasta donde llega el planeta con sus lunas.
     if (r.chance(0.35)) {
+      const count = r.weighted([[1, 15], [2, 4], [3, 1]]);
+      const speed = (r.chance(0.5) ? 1 : -1) * r.range(0.1, 0.22);
+      const first = r.range(45, count > 1 ? 70 : 120);
+      let radius = first;
+      const moons = [];
+      for (let i = 0; i < count; i++) {
+        if (i) radius *= r.range(1.35, 1.6);
+        moons.push({ radius, phase: r.range(0, Math.PI * 2), speed: speed * (first / radius) ** 1.5, size: r.range(2.5, 4) });
+      }
       planet.orbit = {
-        radius: r.range(45, 120),
+        radius,
         dotted: r.chance(0.6),
         color: r.weighted([['primary', 3], ['light', 2], ['accent', 1]]),
+        moons,
       };
-      // Sus lunas: todas en el mismo sentido y a la misma velocidad (radianes por segundo),
-      // repartidas por la órbita: así nunca se cruzan.
-      const speed = (r.chance(0.5) ? 1 : -1) * r.range(0.08, 0.2);
-      const first = r.range(0, Math.PI * 2);
-      const moons = r.chance(0.25) ? 2 : 1;
-      planet.orbit.moons = Array.from({ length: moons }, (_, i) => ({
-        phase: first + (i * Math.PI * 2) / moons + r.range(-0.4, 0.4) * (i ? 1 : 0),
-        speed,
-        size: r.range(2.5, 4),
-      }));
       // Y a veces, una rayita que sale de la órbita, como una marca.
       if (r.chance(0.5)) planet.orbit.tick = r.range(0, Math.PI * 2);
       // Los que tienen órbita, tienen nombre.

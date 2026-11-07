@@ -227,8 +227,13 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.strokeStyle = COLORS[o.color];
     ctx.lineWidth = (o.dotted ? 1.6 : 1) * px;
     if (o.dotted) dotted();
-    circle(planet.x, planet.y, o.radius);
-    ctx.stroke();
+    // Una por luna; las de dentro, algo más tenues.
+    for (const moon of o.moons) {
+      ctx.globalAlpha = moon.radius < o.radius ? 0.6 : 1;
+      circle(planet.x, planet.y, moon.radius);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     solid();
     if (o.tick !== undefined) {
       ctx.lineWidth = px;
@@ -271,7 +276,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     if (planet.orbit) {
       for (const moon of planet.orbit.moons) {
         const a = moon.phase + time * moon.speed;
-        body(planet.x + Math.cos(a) * planet.orbit.radius, planet.y + Math.sin(a) * planet.orbit.radius, moon.size, 'light');
+        body(planet.x + Math.cos(a) * moon.radius, planet.y + Math.sin(a) * moon.radius, moon.size, 'light');
       }
     }
     // Su nombre, junto a la órbita, por arriba a la derecha.
