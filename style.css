@@ -302,6 +302,22 @@ body {
   display: none;
 }
 
+/* El tirador, solo en el cajón (móvil). */
+.card__grip {
+  display: none;
+}
+
+/* La cabecera: de ahí se arrastra. */
+.card__head {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.card.is-dragging .card__head {
+  cursor: grabbing;
+}
+
 .card__head {
   display: flex;
   align-items: flex-start;
@@ -412,13 +428,63 @@ body {
   opacity: 0.6;
 }
 
+/* En el móvil, un cajón desde abajo, a todo el ancho, por encima del pie: con su tirador;
+   plegado, solo asoma la cabecera (card.js, PEEK). */
 @media (max-width: 47.99rem) {
   .card {
     top: auto;
-    right: var(--side);
-    bottom: 8.5rem;
+    right: 0;
+    bottom: 0;
+    left: 0;
     width: auto;
-    max-height: 55%;
+    max-height: 72%;
+    display: flex;
+    flex-direction: column;
+    padding: 0 1rem calc(1rem + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--accent);
+    background: var(--page);
+    overflow: hidden;
+    transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .card.is-entering {
+    transform: translateY(100%);
+  }
+
+  .card.is-folded {
+    transform: translateY(calc(100% - 84px));
+  }
+
+  .card.is-dragging {
+    transition: none;
+  }
+
+  .card__grip {
+    display: block;
+    flex: none;
+    width: 100%;
+    height: 22px;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .card__grip::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 3px;
+    margin: 9px auto 0;
+    background: color-mix(in srgb, var(--ink) 45%, transparent);
+  }
+
+  .card__head {
+    flex: none;
+  }
+
+  .card__body {
+    overflow: auto;
+    overscroll-behavior: contain;
   }
 
   :root {

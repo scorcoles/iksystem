@@ -232,7 +232,7 @@ function select(body) {
   card.show(profileOf(system, body), system.palette);
   // Si la ficha lo tapa, la cámara lo lleva (despacio) al centro del hueco que queda: a su
   // derecha en el escritorio, encima en el móvil.
-  const box = document.querySelector('[data-card]').getBoundingClientRect();
+  const box = card.area();
   const canvasBox = canvas.getBoundingClientRect();
   const sx = (body.x - cam.x) * cam.zoom + cam.width / 2 + canvasBox.left;
   const sy = (body.y - cam.y) * cam.zoom + cam.height / 2 + canvasBox.top;
