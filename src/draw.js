@@ -252,7 +252,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     body(hub.x + Math.cos(a) * moon.radius, hub.y + Math.sin(a) * moon.radius, moon.size, moon.color);
   }
 
-  // La capital y su etiqueta: una línea hasta el nombre, en negrita, y una gran cruz lima.
+  // La capital y su etiqueta: una línea hasta el nombre, en negrita.
   body(capital.x, capital.y, capital.size, 'lime', 2.1);
   {
     const s = capital.side;
@@ -269,10 +269,6 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     const w = ctx.measureText(label).width;
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(label, s > 0 ? end - w : end, capital.y - 6);
-    // La cruz, más allá del final de la línea.
-    const cx = end + s * 26;
-    ctx.fillRect(cx - 5, capital.y - 52, 10, 104);
-    ctx.fillRect(cx - 18, capital.y - 5, 36, 10);
   }
 
   // Los jump points: el disco, el anillo y la etiqueta al final de su línea, subrayada.
