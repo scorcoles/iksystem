@@ -175,10 +175,11 @@ export function drawSystem(ctx, system, cam, time, dpr) {
   solid();
   hexagon(capital.hexagon, capital.turn);
   ctx.stroke();
-  // El de dentro, en discontinua, girando muy despacio.
+  // El de dentro, en discontinua, con el mismo giro (lados paralelos): lo que se mueve son
+  // sus guiones, que corren despacio a lo largo del borde.
   dashed(26, 14);
   ctx.lineDashOffset = -time * 4 * px;
-  hexagon(capital.hexagon * 0.86, capital.turn + time * 0.01);
+  hexagon(capital.hexagon * 0.86, capital.turn);
   ctx.stroke();
   ctx.lineDashOffset = 0;
   solid();
