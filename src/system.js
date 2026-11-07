@@ -13,7 +13,8 @@
 //   - el HUB, el planeta central, con sus círculos concéntricos de puntos verdes;
 //   - la CAPITAL, un planeta lima dentro de un hexágono, con otro interior en discontinua;
 //   - los JUMP POINTS, una cadena de arriba abajo: cada uno con su anillo, su etiqueta
-//     («Jump point 33.825»: la distancia acumulada por la ruta) y rutas blancas entre ellos;
+//     (su nombre y la distancia acumulada por la ruta: «Aregon IV 33.825») y rutas blancas
+//     entre ellos;
 //   - los PLANETAS MENORES, verdes, blancos o lima, con su código girado («E.57»); algunos
 //     con una órbita amplia, una luna que la recorre y su nombre (names.js);
 //   - y abajo a la derecha, el número de la carta.
@@ -69,6 +70,7 @@ const codeOf = (r) => `${r.pick(LETTERS)}.${r.int(1, 99)}`;
 
 export function generate(seed) {
   const r = random(seed * 2654435761);
+  const names = random(seed * 2654435761 + 1);
   const system = { seed, stars: [], crosses: [], chevrons: [], arcs: [], routes: [], jumps: [], planets: [] };
 
   // ---- La cadena de jump points, de arriba abajo, serpenteando alrededor del centro.
@@ -98,6 +100,9 @@ export function generate(seed) {
     // La etiqueta, a un lado u otro (hacia donde haya más sitio), con su línea.
     jump.side = jump.x > WIDTH * 0.45 ? (r.chance(0.7) ? 1 : -1) : r.chance(0.7) ? -1 : 1;
     jump.reach = r.range(150, 300);
+    // Su nombre, de otro generador (con la misma semilla): así los nombres no cambian dónde
+    // cae lo demás.
+    jump.name = nameOf(names);
   });
   system.hub = system.jumps[hubIndex];
   // Los círculos concéntricos del hub.

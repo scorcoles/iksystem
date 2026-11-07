@@ -290,7 +290,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     const start = jump.x + s * jump.size * (jump.hub ? 2.3 : 2.1);
     const end = jump.x + s * jump.reach;
     // La etiqueta: a la izquierda, el número delante; a la derecha, detrás.
-    const label = s < 0 ? `${jump.distance} Jump point` : `Jump point ${jump.distance}`;
+    const label = s < 0 ? `${jump.distance} ${jump.name}` : `${jump.name} ${jump.distance}`;
     const w = ctx.measureText(label).width;
     const textX = s < 0 ? end - w : end - w;
     const lineEnd = s < 0 ? end - w - 4 : end;
