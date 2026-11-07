@@ -7,7 +7,7 @@
 // «#67» de abajo, y la dirección: #67): el mismo número, el mismo sistema.
 //
 //   system.js → de un número, el sistema: qué hay y dónde
-//   texts.js  → las historias del bloque de texto
+//   names.js  → los nombres de los planetas
 //   draw.js   → pintarlo (con el contexto 2D del lienzo de p5)
 //   sound.js  → el sonido: el fondo, la telemetría, los pings y el viento
 //   share.js  → compartir una foto

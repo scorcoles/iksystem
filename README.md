@@ -5,7 +5,7 @@ Una carta estelar viva: planetas, lunas, rutas y jump points sobre un manto de e
 Demo: [scorcoles.github.io/iksystem](https://scorcoles.github.io/iksystem/) · En la web: [vertik.net/iksystem](https://www.vertik.net/iksystem/)
 
 - Cada carta sale de un número (`#67`, abajo y en la dirección): el mismo número da siempre el mismo sistema. «← Prev · Next →» (o las flechas) pasan a la carta anterior o la siguiente.
-- Lo que hay: un manto de estrellas en tres capas (verdes, blancas, lima y azul marino, sólidas o solo borde, con cruces y chevrones); una gran corriente verde; el hub, un planeta con círculos concéntricos de puntos; la capital, un planeta lima en un hexágono con otro interior en discontinua; una cadena de jump points con su distancia y sus rutas; planetas menores con su código («E.57»), algunos con órbitas y lunas; y una pequeña historia.
+- Lo que hay: un manto de estrellas en tres capas (verdes, blancas, lima y azul marino, sólidas o solo borde, con cruces y chevrones); una gran corriente verde; el hub, un planeta con círculos concéntricos de puntos; la capital, un planeta lima en un hexágono con otro interior en discontinua; una cadena de jump points con su distancia y sus rutas; planetas menores con su código («E.57»), algunos con órbitas, lunas y nombre. Los nombres se forman con listas de nombres enteros y medios nombres que se juntan, y a veces llevan un número romano o una letra griega («Aregon IV», «Cassen Tau»).
 - Está viva: las lunas dan vueltas, las estrellas titilan y los círculos punteados giran despacio.
 - Arrastrar mueve la carta (con inercia); la rueda o pellizcar acercan y alejan; mantener pulsado sin moverse se acerca hacia ese punto; doble toque, vuelta al principio.
 - Parallax: el cursor (o, en el móvil, inclinarlo) mueve las estrellas, cada capa a su profundidad.
@@ -22,5 +22,5 @@ Demo: [scorcoles.github.io/iksystem](https://scorcoles.github.io/iksystem/) · E
 | `src/main.js` | p5, la cámara, arrastrar, el zoom, el parallax y el número. |
 | `src/system.js` | De un número, el sistema: qué hay y dónde. |
 | `src/draw.js` | Pintarlo. |
-| `src/texts.js` | Las historias. |
+| `src/names.js` | Los nombres de los planetas. |
 | `src/sound.js` · `src/share.js` | El sonido y compartir. |

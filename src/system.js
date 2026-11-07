@@ -15,10 +15,10 @@
 //   - los JUMP POINTS, una cadena de arriba abajo: cada uno con su anillo, su etiqueta
 //     («Jump point 33.825»: la distancia acumulada por la ruta) y rutas blancas entre ellos;
 //   - los PLANETAS MENORES, verdes, blancos o lima, con su código girado («E.57»); algunos
-//     con una órbita amplia y una luna que la recorre;
-//   - un bloque de TEXTO, con una historia de entre unas pocas (texts.js).
+//     con una órbita amplia, una luna que la recorre y su nombre (names.js);
+//   - y abajo a la derecha, el número de la carta.
 
-import { pick as pickText } from './texts.js';
+import { nameOf } from './names.js';
 
 // El mapa, en sus unidades (a zoom 1, un píxel cada una).
 export const WIDTH = 1600;
@@ -61,15 +61,6 @@ export function random(seed) {
     },
   };
   return r;
-}
-
-// Los nombres de los planetas grandes: dos o tres sílabas al azar.
-const SYLLABLES = ['ka', 'ri', 'ven', 'tor', 'ae', 'lis', 'mor', 'tha', 'nex', 'ul', 'syr', 'do', 'qua', 'bel', 'ix', 'or', 'pha', 'ten', 'zo', 'cyr', 'eb', 'vi', 'mon', 'sha'];
-function nameOf(r) {
-  let name = '';
-  const count = r.chance(0.6) ? 3 : 2;
-  for (let i = 0; i < count; i++) name += r.pick(SYLLABLES);
-  return name.toUpperCase();
 }
 
 // Los códigos de los planetas menores: una letra y un número («E.57»).
@@ -135,30 +126,28 @@ export function generate(seed) {
     turn: r.range(-0.25, 0.25),
     // Su círculo grande de puntos, un poco desplazado hacia fuera.
     halo: { dx: capitalSide * r.range(60, 120), dy: r.range(20, 80), radius: r.range(170, 220) },
-    name: nameOf(r),
+    name: nameOf(r).toUpperCase(),
     code: r.range(10, 99).toFixed(5),
     side: capitalSide,
   };
   system.routes.push({ from: system.hub, to: system.capital, color: 'white' });
   system.routes.push({ from: system.jumps[Math.max(0, hubIndex - 2)], to: system.capital, color: 'white' });
 
-  // ---- El texto, en un hueco de abajo, en el lado contrario a la cadena (con sitio
-  // para unas diez líneas: ahí no va ningún planeta).
-  const textSide = system.jumps[count - 2].x < WIDTH / 2 ? 1 : -1;
-  system.text = { ...pickText(r), x: textSide > 0 ? WIDTH * 0.5 : WIDTH * 0.08, y: HEIGHT - r.range(560, 680), width: WIDTH * 0.42 };
+  // ---- El número de la carta, abajo a la derecha (su esquina queda libre).
+  system.number = { x: WIDTH - 90, y: HEIGHT - 90 };
 
   // ---- Los planetas menores, por todo el mapa, sin pisar a los grandes, ni las etiquetas
-  // de los jump points (su franja, de punta a punta), ni el texto. Primero se decide cómo
+  // de los jump points (su franja, de punta a punta), ni el número. Primero se decide cómo
   // es cada uno (con su órbita, ocupa más) y luego se le busca sitio.
   const taken = [...system.jumps, system.capital].map((o) => ({ x: o.x, y: o.y, reach: 40 }));
-  const t = system.text;
+  const n = system.number;
   const labels = system.jumps.map((j) => ({ left: Math.min(j.x, j.x + j.side * (j.reach + 40)), right: Math.max(j.x, j.x + j.side * (j.reach + 40)), y: j.y }));
   const capitalEnd = system.capital.x + system.capital.side * (system.capital.hexagon + 270);
   labels.push({ left: Math.min(system.capital.x, capitalEnd), right: Math.max(system.capital.x, capitalEnd), y: system.capital.y });
   const free = (px, py, reach) =>
     taken.every((o) => Math.hypot(o.x - px, o.y - py) > reach + o.reach + 30) &&
     labels.every((l) => px < l.left - reach || px > l.right + reach || Math.abs(py - l.y) > reach + 24) &&
-    !(px > t.x - 40 - reach && px < t.x + t.width + 40 + reach && py > t.y - 40 - reach && py < t.y + 300 + reach);
+    !(px > n.x - 160 - reach && py > n.y - 80 - reach);
   for (let k = 0, tries = 0; k < 26 && tries < 600; tries++) {
     const planet = {
       size: r.range(4.5, 9),
@@ -180,6 +169,8 @@ export function generate(seed) {
       };
       // Y a veces, una rayita que sale de la órbita, como una marca.
       if (r.chance(0.5)) planet.orbit.tick = r.range(0, Math.PI * 2);
+      // Los que tienen órbita, tienen nombre.
+      planet.name = nameOf(r);
     }
     const reach = planet.orbit ? planet.orbit.radius + 22 : planet.size + 12;
     planet.x = r.range(80, WIDTH - 80);

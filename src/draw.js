@@ -237,6 +237,15 @@ export function drawSystem(ctx, system, cam, time, dpr) {
         body(planet.x + Math.cos(a) * planet.orbit.radius, planet.y + Math.sin(a) * planet.orbit.radius, moon.size, 'white');
       }
     }
+    // Su nombre, junto a la órbita, por arriba a la derecha.
+    if (planet.name) {
+      const a = -Math.PI / 4;
+      ctx.fillStyle = COLORS.white;
+      ctx.font = `12px ${FONT}`;
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(planet.name, planet.x + Math.cos(a) * planet.orbit.radius + 6, planet.y + Math.sin(a) * planet.orbit.radius - 4);
+      ctx.textBaseline = 'middle';
+    }
     if (planet.code) {
       ctx.save();
       ctx.translate(planet.x + planet.size + 9, planet.y + planet.size + 6);
@@ -295,79 +304,10 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.fillText(label, textX, jump.y - 5);
   }
 
-  // ---- El bloque de texto, con sus líneas lima a los lados y sus cruces.
-  drawText(ctx, system.text, px);
-
   // ---- El número de la carta, abajo a la derecha.
   ctx.font = `400 34px ${FONT}`;
   ctx.fillStyle = COLORS.white;
   ctx.textBaseline = 'alphabetic';
   const number = `#${system.seed}`;
-  ctx.fillText(number, system.text.x + system.text.width - ctx.measureText(number).width, system.text.y + system.text.height + 110);
-}
-
-function drawText(ctx, text, px) {
-  const size = 15;
-  const lead = size * 1.42;
-  ctx.font = `italic 400 ${size}px ${FONT}`;
-  // Partir en líneas: el título y «//» van en la primera, delante del cuerpo.
-  const words = `${text.title} // ${text.body}`.split(' ');
-  const lines = [];
-  let line = '';
-  for (const word of words) {
-    const tryLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(tryLine).width > text.width && line) {
-      lines.push(line);
-      line = word;
-    } else line = tryLine;
-  }
-  lines.push(line);
-  text.height = lines.length * lead;
-
-  // Detrás, un velo del color del fondo: que las estrellas no se metan entre las letras.
-  ctx.fillStyle = COLORS.page;
-  ctx.globalAlpha = 0.88;
-  ctx.fillRect(text.x - 14, text.y, text.width + 28, text.height + 14);
-  ctx.globalAlpha = 1;
-
-  ctx.textBaseline = 'alphabetic';
-  lines.forEach((l, i) => {
-    const y = text.y + (i + 1) * lead;
-    if (i === 0) {
-      // El título, en negrita y sin cursiva; luego, el resto de la línea.
-      ctx.font = `700 ${size}px ${FONT}`;
-      ctx.fillStyle = COLORS.white;
-      ctx.fillText(text.title, text.x, y);
-      const w = ctx.measureText(`${text.title} `).width;
-      ctx.font = `italic 400 ${size}px ${FONT}`;
-      ctx.fillText(l.slice(text.title.length + 1), text.x + w, y);
-    } else {
-      ctx.fillStyle = COLORS.white;
-      ctx.fillText(l, text.x, y);
-    }
-  });
-
-  // Las líneas lima: a la izquierda, a todo lo alto; a la derecha, más larga y con hueco.
-  const left = text.x - 22;
-  const right = text.x + text.width + 22;
-  const top = text.y;
-  const bottom = text.y + text.height + 14;
-  ctx.strokeStyle = COLORS.lime;
-  ctx.lineWidth = 1.4 * px;
-  ctx.beginPath();
-  ctx.moveTo(left, top);
-  ctx.lineTo(left, bottom);
-  ctx.moveTo(right, top + 30);
-  ctx.lineTo(right, bottom + 20);
-  ctx.stroke();
-  const plus = (x, y) => {
-    ctx.beginPath();
-    ctx.moveTo(x - 9, y);
-    ctx.lineTo(x + 9, y);
-    ctx.moveTo(x, y - 9);
-    ctx.lineTo(x, y + 9);
-    ctx.stroke();
-  };
-  plus(left, bottom + 12);
-  plus(right, top);
+  ctx.fillText(number, system.number.x + 40 - ctx.measureText(number).width, system.number.y + 40);
 }
