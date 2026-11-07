@@ -10,6 +10,7 @@
 //   names.js  → los nombres de los planetas
 //   draw.js   → pintarlo (con el contexto 2D del lienzo de p5)
 //   life.js   → lo que pasa sin tocar: naves, balizas y sucesos
+//   profile.js · card.js → la ficha de un planeta: sus características, y en la página
 //   sound.js  → el sonido: el fondo, la telemetría, los pings y el viento
 //   share.js  → compartir una foto
 //   main.js   → p5, la cámara, arrastrar, el zoom, el parallax y el número (este archivo)
@@ -19,13 +20,16 @@
 //   - la rueda, o pellizcar, acerca y aleja; manteniendo pulsado sin moverse, también se
 //     acerca, hacia ese punto; doble clic o doble toque, vuelta al principio;
 //   - el cursor (o, en el móvil, inclinarlo) mueve las estrellas un poco: el parallax;
-//   - tocar un planeta lo «llama»: una onda sale de él, y suena;
+//   - tocar un planeta, o su nombre, lo «llama» (una onda sale de él, y suena) y abre su
+//     ficha; tocar en un sitio vacío la cierra;
 //   - «Prev» y «Next» (o las flechas) pasan a la carta anterior o la siguiente.
 
 import p5 from 'p5';
 import { generate, TALL } from './system.js';
 import { drawSystem } from './draw.js';
 import { createLife } from './life.js';
+import { profileOf } from './profile.js';
+import { createCard } from './card.js';
 import { createSound } from './sound.js';
 import { setupShare } from './share.js';
 import '../style.css';
@@ -81,6 +85,7 @@ const wideScreen = () => cam.width > cam.height;
 function open(seed, { replace = false } = {}) {
   system = generate(seed, wideScreen());
   life = createLife(system, sound);
+  select(null);
   if (numberLabel) numberLabel.textContent = `#${seed}`;
   // Los colores de la página (el pie), los de la paleta de esta carta.
   const style = document.documentElement.style;
@@ -213,6 +218,32 @@ function release(e) {
 }
 for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, release);
 
+// La ficha, y el cuerpo que se ve en ella (marcado en la carta).
+let selected = null;
+const card = createCard(document.querySelector('[data-card]'), () => {
+  selected = null;
+});
+function select(body) {
+  selected = body;
+  if (!body) {
+    card.hide();
+    return;
+  }
+  card.show(profileOf(system, body), system.palette);
+  // Si la ficha lo tapa, la cámara lo lleva (despacio) al centro del hueco que queda: a su
+  // derecha en el escritorio, encima en el móvil.
+  const box = document.querySelector('[data-card]').getBoundingClientRect();
+  const canvasBox = canvas.getBoundingClientRect();
+  const sx = (body.x - cam.x) * cam.zoom + cam.width / 2 + canvasBox.left;
+  const sy = (body.y - cam.y) * cam.zoom + cam.height / 2 + canvasBox.top;
+  const covered = sx > box.left - 30 && sx < box.right + 30 && sy > box.top - 30 && sy < box.bottom + 30;
+  if (!covered) return;
+  const sideBySide = box.right < cam.width * 0.6;
+  const goal = sideBySide ? { x: (box.right + cam.width) / 2, y: cam.height / 2 } : { x: cam.width / 2, y: (72 + box.top) / 2 };
+  target = { x: body.x - (goal.x - cam.width / 2) / cam.zoom, y: body.y - (goal.y - cam.height / 2) / cam.zoom, zoom: cam.zoom };
+  returning = RETURN;
+}
+
 function tap(sx, sy, now) {
   // Doble toque: vuelta al principio.
   if (now - lastTap.time < 300 && Math.hypot(sx - lastTap.x, sy - lastTap.y) < 30) {
@@ -225,16 +256,25 @@ function tap(sx, sy, now) {
   // ¿Hay un planeta cerca? (en píxeles de pantalla, para el dedo).
   const at = toMap(sx, sy);
   const reach = 26 / cam.zoom;
-  let best = null;
+  const bodies = [...system.jumps, system.capital, ...system.planets];
+  // Primero, ¿una etiqueta? (con algo de margen para el dedo); si no, el cuerpo más cerca.
+  const pad = 8 / cam.zoom;
+  let best = bodies.find((b) => b.hits?.some((h) => at.x > h.left - pad && at.x < h.right + pad && at.y > h.top - pad && at.y < h.bottom + pad)) ?? null;
   let bestDistance = Infinity;
-  for (const body of [...system.jumps, system.capital, ...system.planets]) {
-    const d = Math.hypot(body.x - at.x, body.y - at.y) - body.size;
-    if (d < reach && d < bestDistance) {
-      best = body;
-      bestDistance = d;
+  if (!best) {
+    for (const body of bodies) {
+      const d = Math.hypot(body.x - at.x, body.y - at.y) - body.size;
+      if (d < reach && d < bestDistance) {
+        best = body;
+        bestDistance = d;
+      }
     }
   }
-  if (!best) return;
+  if (!best) {
+    select(null);
+    return;
+  }
+  select(best);
   const kind = best === system.capital ? 'capital' : best.hub ? 'hub' : system.jumps.includes(best) ? 'jump' : 'planet';
   calls.push({ x: best.x, y: best.y, age: 0, color: best.color ?? 'accent' });
   sound.ping(kind, (sx / cam.width) * 2 - 1);
@@ -377,6 +417,23 @@ const sketch = (p) => {
 function drawLife(ctx, dpr) {
   ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, dpr * (cam.width / 2 - cam.x * cam.zoom), dpr * (cam.height / 2 - cam.y * cam.zoom));
   life.draw(ctx, 1 / cam.zoom);
+  // El cuerpo de la ficha: cuatro esquinas alrededor, que respiran.
+  if (selected) {
+    const px = 1 / cam.zoom;
+    const size = selected.size * 2.4 + 10 * px + Math.sin(performance.now() / 300) * 2 * px;
+    const arm = 7 * px;
+    ctx.strokeStyle = system.palette.accent;
+    ctx.lineWidth = 1.5 * px;
+    ctx.beginPath();
+    for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      const x = selected.x + dx * size;
+      const y = selected.y + dy * size;
+      ctx.moveTo(x, y - dy * arm);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - dx * arm, y);
+    }
+    ctx.stroke();
+  }
 }
 // Para probar desde la consola: iksystem.event('comet'), 'lost' o 'survey'.
 window.iksystem = { ...window.iksystem, event: (kind) => life.force(kind, cam) };

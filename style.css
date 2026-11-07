@@ -280,7 +280,147 @@ body {
   text-decoration: underline;
 }
 
+/* La ficha de un planeta: arriba a la izquierda, bajo el símbolo (en el móvil, abajo, a
+   todo el ancho, encima del pie). */
+.card {
+  position: fixed;
+  z-index: 2;
+  top: 4.5rem;
+  left: var(--side);
+  width: 18.5rem;
+  max-height: calc(100% - 12rem);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--page) 96%, transparent);
+  font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+.card[hidden] {
+  display: none;
+}
+
+.card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+.card__role {
+  margin: 0 0 0.2rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+}
+
+.card__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.card__close {
+  margin: -6px -8px 0 0;
+  padding: 2px 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 400 22px/1 ui-monospace, Menlo, Consolas, monospace;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.card__close:hover,
+.card__close:focus-visible {
+  opacity: 1;
+}
+
+.card__rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.card__rows dt {
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 16px;
+}
+
+.card__rows dd {
+  margin: 0;
+  text-align: right;
+}
+
+.card__air {
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+.card__air h3 {
+  margin: 0 0 0.5rem;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card__bar {
+  display: flex;
+  height: 6px;
+  gap: 2px;
+}
+
+.card__bar span {
+  display: block;
+  min-width: 2px;
+}
+
+.card__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card__legend li::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.4em;
+  background: var(--tone);
+}
+
+.card__none {
+  margin: 0;
+  opacity: 0.6;
+}
+
 @media (max-width: 47.99rem) {
+  .card {
+    top: auto;
+    right: var(--side);
+    bottom: 8.5rem;
+    width: auto;
+    max-height: 55%;
+  }
+
   :root {
     --side: 0.75rem;
   }

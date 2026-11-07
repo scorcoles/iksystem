@@ -14,7 +14,7 @@ Demo: [scorcoles.github.io/iksystem](https://scorcoles.github.io/iksystem/) · E
 - Zoom con los botones + y − (abajo a la derecha, como en un mapa), además de la rueda, pellizcar o mantener pulsado.
 - Arrastrar mueve la carta (con inercia); la rueda o pellizcar acercan y alejan; mantener pulsado sin moverse se acerca hacia ese punto; doble toque, vuelta al principio.
 - Parallax: el cursor (o, en el móvil, inclinarlo) mueve las estrellas, cada capa a su profundidad. Y el manto está muy lejos: el zoom apenas le afecta (y se repite sin fin, sin borde), así que al alejarse la carta se lee por encima.
-- Tocar un planeta lo «llama»: una onda sale de él, con un ping de sonar.
+- Tocar un planeta, o su nombre, lo «llama» (una onda sale de él, con un ping de sonar) y abre su ficha: tipo, masa, radio, gravedad, temperatura, presión, día y año, lunas, si es habitable y si está habitado (y por quién), recursos, riesgo para la navegación y de qué está hecho su aire. Sale de la semilla: el mismo planeta, la misma ficha. Los principales (la capital, el hub y los jump points) son siempre habitables.
 - Sonido (el altavoz de arriba): un acorde quieto de fondo que respira, telemetría al azar (pitidos como un mensaje de lejos, con eco), viento al arrastrar y los pings.
 
 ## Cómo está hecho
@@ -26,6 +26,7 @@ Demo: [scorcoles.github.io/iksystem](https://scorcoles.github.io/iksystem/) · E
 | `index.html` · `style.css` | La página: la carta a toda pantalla, el símbolo, los botones y el pie. |
 | `src/main.js` | p5, la cámara, arrastrar, el zoom, el parallax y el número. |
 | `src/system.js` | De un número, el sistema: qué hay y dónde. |
+| `src/profile.js` · `src/card.js` | La ficha de un planeta: sus características, y en la página. |
 | `src/life.js` | Lo que pasa sin tocar: naves, balizas y sucesos. |
 | `src/draw.js` | Pintarlo. |
 | `src/names.js` | Los nombres de los planetas. |

@@ -151,6 +151,10 @@ export function drawSystem(ctx, system, cam, time, dpr) {
 
   // ---- Todo lo demás, a la profundidad del mapa.
   camera(1);
+  // Dónde queda cada etiqueta (en el mapa), para poder tocarla (main.js): se apunta al
+  // pintarla.
+  for (const b of [...system.jumps, system.capital, ...system.planets]) b.hits = [];
+  const hit = (b, left, top, right, bottom) => b.hits.push({ left, top, right, bottom });
   ctx.lineCap = 'round';
 
   // Líneas punteadas y discontinuas, con medidas en píxeles de pantalla.
@@ -276,16 +280,22 @@ export function drawSystem(ctx, system, cam, time, dpr) {
       ctx.fillStyle = COLORS.light;
       ctx.font = `12px ${FONT}`;
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(planet.name, planet.x + Math.cos(a) * planet.orbit.radius + 6, planet.y + Math.sin(a) * planet.orbit.radius - 4);
+      const x = planet.x + Math.cos(a) * planet.orbit.radius + 6;
+      const y = planet.y + Math.sin(a) * planet.orbit.radius - 4;
+      ctx.fillText(planet.name, x, y);
+      hit(planet, x, y - 12, x + ctx.measureText(planet.name).width, y + 3);
       ctx.textBaseline = 'middle';
     }
     if (planet.code) {
+      const x = planet.x + planet.size + 9;
+      const y = planet.y + planet.size + 6;
       ctx.save();
-      ctx.translate(planet.x + planet.size + 9, planet.y + planet.size + 6);
+      ctx.translate(x, y);
       ctx.rotate(Math.PI / 2);
       ctx.fillStyle = COLORS.label;
       ctx.font = `11px ${FONT}`;
       ctx.fillText(planet.code, 0, 0);
+      hit(planet, x - 8, y, x + 8, y + ctx.measureText(planet.code).width);
       ctx.restore();
     }
   }
@@ -311,6 +321,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     const w = ctx.measureText(label).width;
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(label, s > 0 ? end - w : end, capital.y - 6);
+    hit(capital, s > 0 ? end - w : end, capital.y - 20, (s > 0 ? end - w : end) + w, capital.y + 2);
   }
 
   // Los jump points: el disco, el anillo y, de él, una línea fina de puntitos hasta la
@@ -352,6 +363,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
       leader(jump.x, jump.y + s * (ring + 3), jump.x, tip);
       underline(jump.x, jump.x + w + 6, tip);
       ctx.fillText(label, jump.x + 4, tip - 5);
+      hit(jump, jump.x, tip - 18, jump.x + w + 6, tip + 3);
       continue;
     }
     // De lado: a la izquierda, el número delante; a la derecha, detrás.
@@ -367,6 +379,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
       underline(end - w - 4, end, jump.y);
     }
     ctx.fillText(label, end - w, jump.y - 5);
+    hit(jump, end - w - 4, jump.y - 18, end, jump.y + 3);
   }
 
 }
