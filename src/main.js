@@ -9,6 +9,7 @@
 //   system.js → de un número, el sistema: qué hay y dónde
 //   names.js  → los nombres de los planetas
 //   draw.js   → pintarlo (con el contexto 2D del lienzo de p5)
+//   life.js   → lo que pasa sin tocar: naves, balizas y sucesos
 //   sound.js  → el sonido: el fondo, la telemetría, los pings y el viento
 //   share.js  → compartir una foto
 //   main.js   → p5, la cámara, arrastrar, el zoom, el parallax y el número (este archivo)
@@ -24,6 +25,7 @@
 import p5 from 'p5';
 import { generate, TALL } from './system.js';
 import { drawSystem } from './draw.js';
+import { createLife } from './life.js';
 import { createSound } from './sound.js';
 import { setupShare } from './share.js';
 import '../style.css';
@@ -74,9 +76,11 @@ function showCoords() {
 // La carta: su número sale de la dirección (#67) o, si no hay, al azar.
 // En pantallas apaisadas, la carta va a lo ancho (system.js).
 let system = null;
+let life = null;
 const wideScreen = () => cam.width > cam.height;
 function open(seed, { replace = false } = {}) {
   system = generate(seed, wideScreen());
+  life = createLife(system, sound);
   if (numberLabel) numberLabel.textContent = `#${seed}`;
   // Los colores de la página (el pie), los de la paleta de esta carta.
   const style = document.documentElement.style;
@@ -241,6 +245,7 @@ canvas.addEventListener(
   (e) => {
     e.preventDefault();
     returning = 0;
+    zoomGoal = null;
     const at = local(e);
     zoomAt(at.x, at.y, Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
   },
@@ -265,6 +270,26 @@ const askTilt = () => {
   if (typeof ask === 'function') ask.call(window.DeviceOrientationEvent).catch(() => {});
 };
 window.addEventListener('pointerup', askTilt);
+
+// ---- Los botones del zoom: cada pulsación, ZOOM_STEP veces más cerca o más lejos, hacia
+// el centro de la pantalla y suave (en ZOOM_EASE segundos, más o menos).
+const ZOOM_STEP = 1.6;
+const ZOOM_EASE = 0.25;
+let zoomGoal = null;
+const zoomIn = document.querySelector('[data-zoom-in]');
+const zoomOut = document.querySelector('[data-zoom-out]');
+const stepZoom = (factor) => {
+  returning = 0;
+  zoomGoal = Math.max(minZoom(), Math.min(ZOOM_MAX, (zoomGoal ?? cam.zoom) * factor));
+};
+zoomIn?.addEventListener('click', () => stepZoom(ZOOM_STEP));
+zoomOut?.addEventListener('click', () => stepZoom(1 / ZOOM_STEP));
+// En los extremos, el botón que ya no sirve, apagado.
+function showZoom() {
+  const z = zoomGoal ?? cam.zoom;
+  if (zoomIn) zoomIn.disabled = z >= ZOOM_MAX * 0.99;
+  if (zoomOut) zoomOut.disabled = z <= minZoom() * 1.01;
+}
 
 // ---- Otra carta: la anterior o la siguiente.
 const step = (by) => open(Math.max(1, system.seed + by));
@@ -316,6 +341,14 @@ const sketch = (p) => {
       velocity.x *= keep;
       velocity.y *= keep;
     }
+    // Los botones del zoom.
+    if (zoomGoal !== null) {
+      if (press || pinch) zoomGoal = null;
+      else {
+        zoomAt(cam.width / 2, cam.height / 2, Math.pow(zoomGoal / cam.zoom, Math.min(1, dt / ZOOM_EASE)));
+        if (Math.abs(zoomGoal / cam.zoom - 1) < 0.002) zoomGoal = null;
+      }
+    }
     // La vuelta al principio.
     if (returning > 0) {
       const k = Math.min(1, dt / (returning * 0.35));
@@ -331,11 +364,22 @@ const sketch = (p) => {
 
     const ctx = p.drawingContext;
     drawSystem(ctx, system, cam, time, p.pixelDensity());
+    life.update(dt, cam);
+    drawLife(ctx, p.pixelDensity());
     drawCalls(ctx, dt, p.pixelDensity());
     showCoords();
+    showZoom();
     sound.update(dt, cam.zoom);
   };
 };
+
+// Lo que pasa sin tocar (life.js), con la cámara de la carta.
+function drawLife(ctx, dpr) {
+  ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, dpr * (cam.width / 2 - cam.x * cam.zoom), dpr * (cam.height / 2 - cam.y * cam.zoom));
+  life.draw(ctx, 1 / cam.zoom);
+}
+// Para probar desde la consola: iksystem.event('comet'), 'lost' o 'survey'.
+window.iksystem = { ...window.iksystem, event: (kind) => life.force(kind, cam) };
 
 // Las ondas de los planetas tocados: un círculo que crece y se apaga.
 function drawCalls(ctx, dt, dpr) {

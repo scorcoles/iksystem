@@ -334,7 +334,11 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.stroke();
   };
   for (const jump of system.jumps) {
+    // Sin señal (life.js): apagado, salvo cuando parpadea, y su etiqueta lo dice.
+    ctx.globalAlpha = jump.lost && !jump.blink ? 0.25 : 1;
     body(jump.x, jump.y, jump.size, jump.color, jump.hub ? 2.3 : 2.1);
+    ctx.globalAlpha = 1;
+    const title = jump.lost ? 'SIGNAL LOST' : jump.name;
     const color = COLORS[jump.color];
     const s = jump.side;
     const ring = jump.size * (jump.hub ? 2.3 : 2.1);
@@ -342,7 +346,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.fillStyle = color;
     if (jump.drop) {
       // A lo ancho: la línea sube o baja y, al final, la etiqueta subrayada hacia la derecha.
-      const label = `${jump.name} ${jump.distance}`;
+      const label = `${title} ${jump.distance}`;
       const w = ctx.measureText(label).width;
       const tip = jump.y + s * jump.reach;
       leader(jump.x, jump.y + s * (ring + 3), jump.x, tip);
@@ -353,7 +357,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     // De lado: a la izquierda, el número delante; a la derecha, detrás.
     const start = jump.x + s * (ring + 3);
     const end = jump.x + s * jump.reach;
-    const label = s < 0 ? `${jump.distance} ${jump.name}` : `${jump.name} ${jump.distance}`;
+    const label = s < 0 ? `${jump.distance} ${title}` : `${title} ${jump.distance}`;
     const w = ctx.measureText(label).width;
     if (s > 0) {
       leader(start, jump.y, end - w - 4, jump.y);

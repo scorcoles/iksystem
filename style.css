@@ -188,6 +188,56 @@ body {
   text-shadow: 0 0 6px var(--page), 0 0 2px var(--page);
 }
 
+/* El zoom: dos botones cuadrados, uno encima del otro, en una caja (como en un mapa),
+   a la derecha, encima del número. */
+.zoom {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 3.4rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ink);
+  background: var(--page);
+}
+
+.zoom button {
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 400 20px/34px ui-monospace, Menlo, Consolas, monospace;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 200ms ease, background-color 200ms ease;
+}
+
+.zoom button + button {
+  border-top: 1px solid var(--ink);
+}
+
+@media (hover: hover) {
+  .zoom button:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--ink) 12%, transparent);
+  }
+}
+
+.zoom button:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.zoom button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .hud__seed {
   font-size: 22px;
   color: var(--ink);

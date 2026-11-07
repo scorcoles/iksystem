@@ -231,13 +231,17 @@ export function generate(seed, wide = false) {
         radius: r.range(45, 120),
         dotted: r.chance(0.6),
         color: r.weighted([['primary', 3], ['light', 2], ['accent', 1]]),
-        moons: Array.from({ length: r.chance(0.25) ? 2 : 1 }, () => ({
-          phase: r.range(0, Math.PI * 2),
-          // Radianes por segundo.
-          speed: (r.chance(0.5) ? 1 : -1) * r.range(0.08, 0.2),
-          size: r.range(2.5, 4),
-        })),
       };
+      // Sus lunas: todas en el mismo sentido y a la misma velocidad (radianes por segundo),
+      // repartidas por la órbita: así nunca se cruzan.
+      const speed = (r.chance(0.5) ? 1 : -1) * r.range(0.08, 0.2);
+      const first = r.range(0, Math.PI * 2);
+      const moons = r.chance(0.25) ? 2 : 1;
+      planet.orbit.moons = Array.from({ length: moons }, (_, i) => ({
+        phase: first + (i * Math.PI * 2) / moons + r.range(-0.4, 0.4) * (i ? 1 : 0),
+        speed,
+        size: r.range(2.5, 4),
+      }));
       // Y a veces, una rayita que sale de la órbita, como una marca.
       if (r.chance(0.5)) planet.orbit.tick = r.range(0, Math.PI * 2);
       // Los que tienen órbita, tienen nombre.

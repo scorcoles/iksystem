@@ -5,9 +5,12 @@
 // Todo se genera aquí, con la Web Audio API: no hay archivos de audio.
 //   - el FONDO, un acorde quieto y abierto (La, Mi y Si, muy graves, en ondas suaves) por un
 //     filtro que se abre y se cierra muy despacio, como una respiración larga;
-//   - la TELEMETRÍA: de vez en cuando, al azar, unos pitidos cortos y agudos, de uno a cinco,
-//     como un mensaje que llega de lejos, con un eco que se repite y se apaga; cada vez en
-//     un sitio distinto entre los dos altavoces;
+//   - la TELEMETRÍA: cada vez que una baliza emite (life.js), unos pitidos cortos y agudos,
+//     de uno a cinco, como un mensaje que llega de lejos, con un eco que se repite y se
+//     apaga; del lado de la pantalla donde está la baliza;
+//   - las NAVES, al saltar, un «fiu» muy flojo que sube;
+//   - los SUCESOS: un jump point que pierde la señal, un chisporroteo de radio; un cometa,
+//     un soplo que cruza de un altavoz al otro;
 //   - el VIENTO al arrastrar: ruido muy filtrado, más fuerte y más abierto cuanto más
 //     deprisa se mueve la carta;
 //   - al tocar un planeta, un PING de sonar, con su eco: cada clase de cuerpo, su nota (el
@@ -23,8 +26,7 @@ const FILTER = 420;
 const BREATH = 19;
 const BREATH_DEPTH = 260;
 
-// La telemetría: cada cuánto (segundos, entre y), su nota (Hz, entre y) y su volumen.
-const TELEMETRY_EVERY = [4, 11];
+// La telemetría: su nota (Hz, entre y) y su volumen.
 const TELEMETRY_PITCH = [1400, 2600];
 const TELEMETRY_VOLUME = 0.05;
 
@@ -53,7 +55,7 @@ export function createSound() {
   let windGain = null;
   let windFilter = null;
   let on = false;
-  let telemetryTimer = random(...TELEMETRY_EVERY) * 0.4;
+  let noiseBuffer = null;
   let breath = 0;
   let wind = 0;
 
@@ -101,6 +103,7 @@ export function createSound() {
     const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    noiseBuffer = buffer;
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
     noise.loop = true;
@@ -132,10 +135,37 @@ export function createSound() {
     osc.stop(at + length + 0.05);
   }
 
-  function telemetry() {
+  // Un trozo de ruido por un filtro: «from» y «to», por dónde corta (Hz) al empezar y al
+  // acabar; «chop», si se corta a trozos.
+  function hiss({ length, volume, from, to, pan = 0, panTo = pan, q = 1.5, chop = false }) {
+    const at = ctx.currentTime;
+    const source = ctx.createBufferSource();
+    source.buffer = noiseBuffer;
+    source.loop = true;
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.Q.value = q;
+    band.frequency.setValueAtTime(from, at);
+    band.frequency.exponentialRampToValueAtTime(to, at + length);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    if (chop) {
+      for (let t = 0; t < length; t += random(0.03, 0.09)) g.gain.setValueAtTime(Math.random() < 0.6 ? volume * random(0.4, 1) : 0, at + t);
+    } else {
+      g.gain.linearRampToValueAtTime(volume, at + length * 0.4);
+    }
+    g.gain.linearRampToValueAtTime(0, at + length);
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(pan, at);
+    panner.pan.linearRampToValueAtTime(panTo, at + length);
+    source.connect(band).connect(g).connect(panner).connect(master);
+    source.start(at, Math.random());
+    source.stop(at + length + 0.05);
+  }
+
+  function telemetry(pan) {
     const now = ctx.currentTime;
     const pitch = random(...TELEMETRY_PITCH);
-    const pan = random(-0.8, 0.8);
     const count = 1 + Math.floor(Math.random() * 5);
     let at = now;
     for (let i = 0; i < count; i++) {
@@ -167,6 +197,37 @@ export function createSound() {
         beep(frequency * 2.76, at, 0.4, PING_VOLUME * 0.08, pan);
       }
     },
+    // Una baliza emite: «pan», dónde está en la pantalla (de -1 a 1).
+    beacon(pan = 0) {
+      if (on) telemetry(Math.max(-0.9, Math.min(0.9, pan)));
+    },
+    // Una nave salta.
+    jump(pan = 0) {
+      if (!on) return;
+      const at = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, at);
+      osc.frequency.exponentialRampToValueAtTime(1800, at + 0.25);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(0.025, at + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.3);
+      const panner = ctx.createStereoPanner();
+      panner.pan.value = Math.max(-0.9, Math.min(0.9, pan));
+      osc.connect(g).connect(panner).connect(master);
+      panner.connect(echo);
+      osc.start(at);
+      osc.stop(at + 0.35);
+    },
+    // Un jump point pierde la señal.
+    glitch(pan = 0) {
+      if (on) hiss({ length: 1.6, volume: 0.09, from: 2400, to: 900, pan, q: 3, chop: true });
+    },
+    // Un cometa cruza, de «from» a «to» (de -1 a 1) en «length» segundos.
+    comet(from, to, length) {
+      if (on) hiss({ length, volume: 0.05, from: 300, to: 2200, pan: from, panTo: to, q: 0.9 });
+    },
     // Al arrastrar: lo deprisa que va (pantallas por segundo, más o menos).
     wind(speed) {
       wind = Math.max(wind, Math.min(1, speed / 3));
@@ -180,11 +241,6 @@ export function createSound() {
       windGain.gain.setTargetAtTime(wind * WIND_VOLUME, now, 0.05);
       windFilter.frequency.setTargetAtTime(300 + wind * 1600, now, 0.05);
       wind *= Math.exp(-dt / WIND_FADE);
-      telemetryTimer -= dt;
-      if (telemetryTimer <= 0) {
-        telemetry();
-        telemetryTimer = random(...TELEMETRY_EVERY);
-      }
     },
   };
 }
