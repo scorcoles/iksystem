@@ -18,6 +18,21 @@ const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 // Cuánto crecen las estrellas con el zoom (1 = como el resto; 0 = nada).
 const STAR_GROWTH = 0.5;
 
+// Al alejarse, el manto no debe tapar la carta (en la misma pantalla caben muchas más
+// estrellas). Por debajo de NEAR, tres cosas, cada vez más:
+//   - quedan menos estrellas: las que hacen falta para que haya más o menos las mismas en
+//     pantalla (nunca menos de FEWEST); las que se van, se apagan poco a poco;
+//   - niebla: las capas del fondo se aclaran, más cuanto más lejanas (FOG);
+//   - más simples: las de solo borde pasan a ser puntos, y las cruces pequeñas se van.
+// Del todo así, en FAR.
+const NEAR = 0.6;
+const FAR = 0.25;
+const FEWEST = 0.18;
+const FOG = 1.3;
+
+// Un número fijo entre 0 y 1 para cada estrella (de su sitio): el orden en que se van.
+const keepOf = (o) => (o.keep ??= ((Math.sin(o.x * 12.9898 + o.y * 78.233) * 43758.5453) % 1 + 1) % 1);
+
 // «cam»: { x, y, zoom, width, height, shiftX, shiftY } (shift: el parallax del cursor o del
 // móvil, en píxeles, para lo más cercano; las capas lejanas, menos). «time», en segundos.
 export function drawSystem(ctx, system, cam, time, dpr) {
@@ -46,18 +61,28 @@ export function drawSystem(ctx, system, cam, time, dpr) {
   const px = 1 / cam.zoom;
 
   // ---- El manto de estrellas, de la capa más lejana a la más cercana.
+  // Lo lejos que estamos (0 = cerca, 1 = del todo lejos) y qué parte de las estrellas queda.
+  const out = Math.max(0, Math.min(1, (NEAR - cam.zoom) / (NEAR - FAR)));
+  const share = Math.max(FEWEST, Math.min(1, (cam.zoom / NEAR) ** 2));
+  // Lo que se ve una estrella según su número: las que sobran, apagándose en un margen.
+  const kept = (o) => Math.max(0, Math.min(1, (share - keepOf(o)) / 0.08 + 1));
   for (const [layer, { depth }] of LAYERS.entries()) {
     const v = camera(depth);
     const grow = Math.pow(cam.zoom, STAR_GROWTH) / cam.zoom;
+    const fog = Math.max(0.2, 1 - out * (1 - depth) * FOG);
     ctx.lineWidth = px;
     for (const star of system.stars) {
       if (star.layer !== layer) continue;
       if (star.x < v.left - 10 || star.x > v.right + 10 || star.y < v.top - 10 || star.y > v.bottom + 10) continue;
-      ctx.globalAlpha = star.twinkle ? 0.55 + 0.45 * Math.sin(time * star.twinkle + star.phase) : 1;
-      const radius = star.size * grow * (star.ring ? 1.5 : 1);
+      const seen = kept(star) * fog;
+      if (seen <= 0.01) continue;
+      ctx.globalAlpha = seen * (star.twinkle ? 0.55 + 0.45 * Math.sin(time * star.twinkle + star.phase) : 1);
+      // De lejos, las de solo borde se vuelven puntos.
+      const ring = star.ring && out < 0.5;
+      const radius = star.size * grow * (ring ? 1.5 : 1);
       ctx.beginPath();
       ctx.arc(star.x, star.y, radius, 0, Math.PI * 2);
-      if (star.ring) {
+      if (ring) {
         ctx.strokeStyle = COLORS[star.color];
         ctx.stroke();
       } else {
@@ -70,6 +95,11 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     for (const cross of system.crosses) {
       if (cross.layer !== layer) continue;
       if (cross.x < v.left - 20 || cross.x > v.right + 20 || cross.y < v.top - 20 || cross.y > v.bottom + 20) continue;
+      // De lejos, las pequeñas se van (las grandes se quedan, con la niebla).
+      const small = cross.size < 8 ? 1 - Math.min(1, out * 1.6) : 1;
+      const seen = small * fog * (cross.size < 8 ? kept(cross) : 1);
+      if (seen <= 0.01) continue;
+      ctx.globalAlpha = seen;
       const s = cross.size * grow;
       // Las grandes, con algo más de trazo.
       ctx.lineWidth = (cross.size > 8 ? 2 : 1.4) * px;
@@ -83,6 +113,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     }
     for (const chevron of system.chevrons) {
       if (chevron.layer !== layer) continue;
+      ctx.globalAlpha = kept(chevron) * fog * (1 - out * 0.6);
       ctx.strokeStyle = COLORS[chevron.color];
       ctx.beginPath();
       const g = chevron.gap * grow;
@@ -106,6 +137,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
       ctx.stroke();
     }
   }
+  ctx.globalAlpha = 1;
 
   // ---- Todo lo demás, a la profundidad del mapa.
   camera(1);
