@@ -1,13 +1,14 @@
 /* =========================================================================================
    iksystem: la carta a toda la pantalla y, encima, el símbolo, los botones y el pie
    =========================================================================================
-   El fondo, el negro cálido de la carta; la letra, blanco roto; y el lima de la capital
-   para las líneas del pie y su etiqueta. */
+   Los colores, los de la paleta de cada carta (main.js los pone aquí al abrirla): el
+   fondo, la letra, y el color de la capital para las líneas del pie y su etiqueta. Hasta
+   entonces, los de la primera paleta. */
 
 :root {
-  --page: #211e1f;
-  --ink: #f3f1ea;
-  --accent: #c4dc3c;
+  --page: #13151d;
+  --ink: #efe8dc;
+  --accent: #f2d16b;
   --side: 1rem;
 }
 

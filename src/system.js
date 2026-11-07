@@ -24,10 +24,8 @@ import { nameOf } from './names.js';
 // Las paletas: cada carta lleva una, elegida por su semilla. «page», el fondo; «primary», la
 // corriente, los círculos del hub y la mayoría de los planetas; «accent», la capital y lo
 // que destaca; «light», las rutas y los jump points; «faint», lo más apagado del fondo (las
-// cruces, algunas estrellas); y «label», los códigos. La primera, la de la lámina original
-// (verde, lima y azul marino sobre negro cálido), sale más a menudo.
+// cruces, algunas estrellas); y «label», los códigos. Todas salen igual de a menudo.
 export const PALETTES = [
-  { name: 'chart', weight: 3, page: '#211e1f', primary: '#16b06c', accent: '#c4dc3c', light: '#f3f1ea', faint: '#24338a', label: '#9c9a94' },
   { name: 'amber', weight: 1, page: '#13151d', primary: '#e0892b', accent: '#f2d16b', light: '#efe8dc', faint: '#43306a', label: '#8f8a99' },
   { name: 'ice', weight: 1, page: '#0b1317', primary: '#3fb8d6', accent: '#ff6b5a', light: '#eef3f4', faint: '#1f3c57', label: '#8aa0a8' },
   { name: 'rose', weight: 1, page: '#1b1317', primary: '#e05a86', accent: '#ffb35c', light: '#f6ece6', faint: '#4b2442', label: '#a08f96' },
