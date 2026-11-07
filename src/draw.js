@@ -313,9 +313,26 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.fillText(label, s > 0 ? end - w : end, capital.y - 6);
   }
 
-  // Los jump points: el disco, el anillo y la etiqueta al final de su línea, subrayada.
+  // Los jump points: el disco, el anillo y, de él, una línea fina de puntitos hasta la
+  // etiqueta, que va subrayada (el subrayado, continuo).
   ctx.font = `13px ${FONT}`;
   ctx.textBaseline = 'alphabetic';
+  const leader = (x1, y1, x2, y2) => {
+    ctx.lineWidth = 1.3 * px;
+    ctx.setLineDash([0.01 * px, 3 * px]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  const underline = (x1, x2, y) => {
+    ctx.lineWidth = px;
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+  };
   for (const jump of system.jumps) {
     body(jump.x, jump.y, jump.size, jump.color, jump.hub ? 2.3 : 2.1);
     const color = COLORS[jump.color];
@@ -323,31 +340,29 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     const ring = jump.size * (jump.hub ? 2.3 : 2.1);
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
-    ctx.lineWidth = px;
     if (jump.drop) {
       // A lo ancho: la línea sube o baja y, al final, la etiqueta subrayada hacia la derecha.
       const label = `${jump.name} ${jump.distance}`;
       const w = ctx.measureText(label).width;
       const tip = jump.y + s * jump.reach;
-      ctx.beginPath();
-      ctx.moveTo(jump.x, jump.y + s * ring);
-      ctx.lineTo(jump.x, tip);
-      ctx.lineTo(jump.x + w + 6, tip);
-      ctx.stroke();
+      leader(jump.x, jump.y + s * (ring + 3), jump.x, tip);
+      underline(jump.x, jump.x + w + 6, tip);
       ctx.fillText(label, jump.x + 4, tip - 5);
       continue;
     }
-    const start = jump.x + s * ring;
+    // De lado: a la izquierda, el número delante; a la derecha, detrás.
+    const start = jump.x + s * (ring + 3);
     const end = jump.x + s * jump.reach;
-    // La etiqueta: a la izquierda, el número delante; a la derecha, detrás.
     const label = s < 0 ? `${jump.distance} ${jump.name}` : `${jump.name} ${jump.distance}`;
     const w = ctx.measureText(label).width;
-    const textX = s < 0 ? end - w : end - w;
-    const lineEnd = s < 0 ? end - w - 4 : end;
-    ctx.beginPath();
-    ctx.moveTo(start, jump.y);
-    ctx.lineTo(lineEnd, jump.y);
-    ctx.stroke();
-    ctx.fillText(label, textX, jump.y - 5);
+    if (s > 0) {
+      leader(start, jump.y, end - w - 4, jump.y);
+      underline(end - w - 4, end, jump.y);
+    } else {
+      leader(start, jump.y, end, jump.y);
+      underline(end - w - 4, end, jump.y);
+    }
+    ctx.fillText(label, end - w, jump.y - 5);
   }
+
 }
