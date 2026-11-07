@@ -7,9 +7,7 @@
 // fondo y, abajo, «IKSYSTEM #67 · VERTIK.NET». Donde no se puede compartir una imagen
 // (Firefox de escritorio, por ejemplo), el botón no aparece.
 //
-// «info()» da el número de la carta que se ve.
-
-import { COLORS } from './draw.js';
+// «info()» da el número de la carta que se ve y su paleta.
 
 export function setupShare(canvas, render, info) {
   const button = document.querySelector('[data-share]');
@@ -28,7 +26,7 @@ export function setupShare(canvas, render, info) {
 
   function snapshot() {
     render();
-    const { seed } = info();
+    const { seed, palette } = info();
     const side = Math.min(canvas.width, canvas.height);
     const frame = Math.round(side * 0.05);
     const band = Math.round(side * 0.09);
@@ -36,12 +34,12 @@ export function setupShare(canvas, render, info) {
     out.width = canvas.width + frame * 2;
     out.height = canvas.height + frame + band;
     const o = out.getContext('2d');
-    o.fillStyle = COLORS.page;
+    o.fillStyle = palette.page;
     o.fillRect(0, 0, out.width, out.height);
     o.drawImage(canvas, frame, frame);
 
     const size = Math.round(side * 0.022);
-    o.strokeStyle = COLORS.lime;
+    o.strokeStyle = palette.accent;
     o.lineWidth = Math.max(1, Math.round(side * 0.0015));
     const lineY = canvas.height + frame + Math.round(band * 0.3);
     o.beginPath();
@@ -50,7 +48,7 @@ export function setupShare(canvas, render, info) {
     o.stroke();
     o.font = `${size}px ui-monospace, Menlo, Consolas, monospace`;
     o.textBaseline = 'middle';
-    o.fillStyle = COLORS.white;
+    o.fillStyle = palette.light;
     o.fillText(`IKSYSTEM #${seed} · VERTIK.NET`, frame, lineY + (out.height - lineY) / 2);
 
     const bin = atob(out.toDataURL('image/png').split(',')[1]);

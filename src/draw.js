@@ -12,14 +12,6 @@
 
 import { LAYERS } from './system.js';
 
-export const COLORS = {
-  page: '#211e1f',
-  green: '#16b06c',
-  lime: '#c4dc3c',
-  white: '#f3f1ea',
-  navy: '#24338a',
-  label: '#9c9a94',
-};
 
 const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 
@@ -30,6 +22,8 @@ const STAR_GROWTH = 0.5;
 // móvil, en píxeles, para lo más cercano; las capas lejanas, menos). «time», en segundos.
 export function drawSystem(ctx, system, cam, time, dpr) {
   const { width, height } = cam;
+  // Los colores de esta carta (system.js, PALETTES).
+  const COLORS = system.palette;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = COLORS.page;
   ctx.fillRect(0, 0, width, height);
@@ -73,18 +67,20 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     }
     ctx.globalAlpha = 1;
     // Las cruces y los chevrones, con las estrellas de su capa.
-    ctx.lineWidth = 1.4 * px;
-    ctx.strokeStyle = COLORS.navy;
-    ctx.beginPath();
     for (const cross of system.crosses) {
       if (cross.layer !== layer) continue;
+      if (cross.x < v.left - 20 || cross.x > v.right + 20 || cross.y < v.top - 20 || cross.y > v.bottom + 20) continue;
       const s = cross.size * grow;
+      // Las grandes, con algo más de trazo.
+      ctx.lineWidth = (cross.size > 8 ? 2 : 1.4) * px;
+      ctx.strokeStyle = COLORS[cross.color];
+      ctx.beginPath();
       ctx.moveTo(cross.x - s, cross.y);
       ctx.lineTo(cross.x + s, cross.y);
       ctx.moveTo(cross.x, cross.y - s);
       ctx.lineTo(cross.x, cross.y + s);
+      ctx.stroke();
     }
-    ctx.stroke();
     for (const chevron of system.chevrons) {
       if (chevron.layer !== layer) continue;
       ctx.strokeStyle = COLORS[chevron.color];
@@ -125,7 +121,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
   };
 
   // La corriente: una curva suave (Catmull-Rom) por sus puntos de paso.
-  ctx.strokeStyle = COLORS.green;
+  ctx.strokeStyle = COLORS.primary;
   ctx.lineWidth = 1.5 * px;
   ctx.beginPath();
   const flow = system.flow;
@@ -138,17 +134,11 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     ctx.bezierCurveTo(b.x + (c.x - a.x) / 6, b.y + (c.y - a.y) / 6, c.x - (d.x - b.x) / 6, c.y - (d.y - b.y) / 6, c.x, c.y);
   }
   ctx.stroke();
-  for (const arc of system.arcs) {
-    ctx.strokeStyle = COLORS[arc.color];
-    ctx.beginPath();
-    ctx.arc(arc.x, arc.y, arc.radius, arc.start, arc.end);
-    ctx.stroke();
-  }
 
   // Los círculos del hub, punteados en verde, que giran muy despacio (se nota en los
   // puntos).
   const hub = system.hub;
-  ctx.strokeStyle = COLORS.green;
+  ctx.strokeStyle = COLORS.primary;
   ctx.lineWidth = 1.6 * px;
   dotted();
   hub.rings.forEach((radius, k) => {
@@ -170,7 +160,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     }
     ctx.closePath();
   };
-  ctx.strokeStyle = COLORS.lime;
+  ctx.strokeStyle = COLORS.accent;
   ctx.lineWidth = 1.2 * px;
   solid();
   hexagon(capital.hexagon, capital.turn);
@@ -235,13 +225,13 @@ export function drawSystem(ctx, system, cam, time, dpr) {
     if (planet.orbit) {
       for (const moon of planet.orbit.moons) {
         const a = moon.phase + time * moon.speed;
-        body(planet.x + Math.cos(a) * planet.orbit.radius, planet.y + Math.sin(a) * planet.orbit.radius, moon.size, 'white');
+        body(planet.x + Math.cos(a) * planet.orbit.radius, planet.y + Math.sin(a) * planet.orbit.radius, moon.size, 'light');
       }
     }
     // Su nombre, junto a la órbita, por arriba a la derecha.
     if (planet.name) {
       const a = -Math.PI / 4;
-      ctx.fillStyle = COLORS.white;
+      ctx.fillStyle = COLORS.light;
       ctx.font = `12px ${FONT}`;
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(planet.name, planet.x + Math.cos(a) * planet.orbit.radius + 6, planet.y + Math.sin(a) * planet.orbit.radius - 4);
@@ -263,12 +253,12 @@ export function drawSystem(ctx, system, cam, time, dpr) {
   }
 
   // La capital y su etiqueta: una línea hasta el nombre, en negrita.
-  body(capital.x, capital.y, capital.size, 'lime', 2.1);
+  body(capital.x, capital.y, capital.size, 'accent', 2.1);
   {
     const s = capital.side;
     const end = capital.x + s * (capital.hexagon + 230);
-    ctx.strokeStyle = COLORS.lime;
-    ctx.fillStyle = COLORS.lime;
+    ctx.strokeStyle = COLORS.accent;
+    ctx.fillStyle = COLORS.accent;
     ctx.lineWidth = 2 * px;
     ctx.beginPath();
     ctx.moveTo(capital.x + s * capital.size * 2.1, capital.y);
@@ -307,7 +297,7 @@ export function drawSystem(ctx, system, cam, time, dpr) {
 
   // ---- El número de la carta, abajo a la derecha.
   ctx.font = `400 34px ${FONT}`;
-  ctx.fillStyle = COLORS.white;
+  ctx.fillStyle = COLORS.light;
   ctx.textBaseline = 'alphabetic';
   const number = `#${system.seed}`;
   ctx.fillText(number, system.number.x + 40 - ctx.measureText(number).width, system.number.y + 40);

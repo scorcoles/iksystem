@@ -9,7 +9,7 @@
 // Lo que hay, de abajo arriba:
 //   - el MANTO DE ESTRELLAS, en tres capas a distinta profundidad (para el parallax): puntos
 //     verdes, blancos, lima y azul marino, sólidos o solo borde; cruces azules y chevrones;
-//   - la CORRIENTE, una gran curva verde que cruza todo el mapa, y algún arco suelto;
+//   - la CORRIENTE, una gran curva que cruza todo el mapa;
 //   - el HUB, el planeta central, con sus círculos concéntricos de puntos verdes;
 //   - la CAPITAL, un planeta lima dentro de un hexágono, con otro interior en discontinua;
 //   - los JUMP POINTS, una cadena de arriba abajo: cada uno con su anillo, su etiqueta
@@ -20,6 +20,20 @@
 //   - y abajo a la derecha, el número de la carta.
 
 import { nameOf } from './names.js';
+
+// Las paletas: cada carta lleva una, elegida por su semilla. «page», el fondo; «primary», la
+// corriente, los círculos del hub y la mayoría de los planetas; «accent», la capital y lo
+// que destaca; «light», las rutas y los jump points; «faint», lo más apagado del fondo (las
+// cruces, algunas estrellas); y «label», los códigos. La primera, la de la lámina original
+// (verde, lima y azul marino sobre negro cálido), sale más a menudo.
+export const PALETTES = [
+  { name: 'chart', weight: 3, page: '#211e1f', primary: '#16b06c', accent: '#c4dc3c', light: '#f3f1ea', faint: '#24338a', label: '#9c9a94' },
+  { name: 'amber', weight: 1, page: '#13151d', primary: '#e0892b', accent: '#f2d16b', light: '#efe8dc', faint: '#43306a', label: '#8f8a99' },
+  { name: 'ice', weight: 1, page: '#0b1317', primary: '#3fb8d6', accent: '#ff6b5a', light: '#eef3f4', faint: '#1f3c57', label: '#8aa0a8' },
+  { name: 'rose', weight: 1, page: '#1b1317', primary: '#e05a86', accent: '#ffb35c', light: '#f6ece6', faint: '#4b2442', label: '#a08f96' },
+  { name: 'violet', weight: 1, page: '#14111e', primary: '#8f6bf0', accent: '#5fe0b0', light: '#f0eef8', faint: '#2b3070', label: '#948fa6' },
+  { name: 'signal', weight: 1, page: '#111111', primary: '#d8412f', accent: '#ece6d6', light: '#bdbdbd', faint: '#3a3a3a', label: '#858585' },
+];
 
 // El mapa, en sus unidades (a zoom 1, un píxel cada una).
 export const WIDTH = 1600;
@@ -71,7 +85,11 @@ const codeOf = (r) => `${r.pick(LETTERS)}.${r.int(1, 99)}`;
 export function generate(seed) {
   const r = random(seed * 2654435761);
   const names = random(seed * 2654435761 + 1);
-  const system = { seed, stars: [], crosses: [], chevrons: [], arcs: [], routes: [], jumps: [], planets: [] };
+  // La paleta y cuántos planetas menores, de otro más (así no cambian dónde cae lo demás).
+  const extra = random(seed * 2654435761 + 2);
+  const palette = extra.weighted(PALETTES.map((p) => [p, p.weight]));
+  const planetCount = extra.int(15, 35);
+  const system = { seed, palette, stars: [], crosses: [], chevrons: [], routes: [], jumps: [], planets: [] };
 
   // ---- La cadena de jump points, de arriba abajo, serpenteando alrededor del centro.
   const count = r.int(7, 9);
@@ -87,7 +105,7 @@ export function generate(seed) {
       x: hub ? WIDTH * r.range(0.36, 0.46) : x,
       y,
       hub,
-      color: hub ? 'white' : r.chance(0.35) ? 'lime' : 'white',
+      color: hub ? 'light' : r.chance(0.35) ? 'accent' : 'light',
       size: hub ? 11 : r.range(7, 10),
     });
   }
@@ -110,33 +128,58 @@ export function generate(seed) {
   for (let k = 0, radius = r.range(80, 100); k < r.int(4, 6); k++, radius += r.range(70, 110)) system.hub.rings.push(radius);
 
   // Las rutas: la cadena, y algún atajo de uno a otro saltándose alguno.
-  for (let i = 1; i < count; i++) system.routes.push({ from: system.jumps[i - 1], to: system.jumps[i], color: 'white' });
+  for (let i = 1; i < count; i++) system.routes.push({ from: system.jumps[i - 1], to: system.jumps[i], color: 'light' });
   for (let k = 0; k < r.int(2, 4); k++) {
     const a = r.int(0, count - 3);
     const b = Math.min(count - 1, a + r.int(2, 3));
-    system.routes.push({ from: system.jumps[a], to: system.jumps[b], color: 'white' });
+    system.routes.push({ from: system.jumps[a], to: system.jumps[b], color: 'light' });
   }
   // Y una ruta lima, larga, casi de punta a punta.
   const longFrom = system.jumps[r.int(0, 1)];
   const longTo = system.jumps[count - 1 - r.int(0, 1)];
-  system.routes.push({ from: longFrom, to: longTo, color: 'lime', long: true });
+  system.routes.push({ from: longFrom, to: longTo, color: 'accent', long: true });
 
   // ---- La capital: un planeta lima en un hexágono, a un lado del hub, unida a él.
   const capitalSide = system.hub.x < WIDTH / 2 ? 1 : -1;
+  // Su sitio: a un lado del hub, lejos de los otros jump points y de sus etiquetas. Prueba
+  // unas cuantas veces y se queda con el primero que esté libre o, si no hay ninguno, con
+  // el más despejado (de los dos lados).
+  const clearance = (x, y) =>
+    Math.min(
+      ...system.jumps.map((j) => {
+        const left = Math.min(j.x, j.x + j.side * (j.reach + 40)) - 140;
+        const right = Math.max(j.x, j.x + j.side * (j.reach + 40)) + 140;
+        const label = x > left && x < right ? Math.abs(y - j.y) / 150 : Infinity;
+        return Math.min(Math.hypot(j.x - x, j.y - y) / 220, label);
+      }),
+    );
+  let spot = null;
+  let best = -Infinity;
+  for (let tries = 0; tries < 40 && best < 1; tries++) {
+    const side = tries < 20 ? capitalSide : -capitalSide;
+    const x = Math.max(140, Math.min(WIDTH - 140, system.hub.x + side * r.range(300, 520)));
+    const y = Math.max(200, Math.min(HEIGHT - 300, system.hub.y + r.range(-700, 500)));
+    const c = clearance(x, y);
+    if (c > best) {
+      best = c;
+      spot = { x, y, side };
+    }
+  }
   system.capital = {
-    x: system.hub.x + capitalSide * r.range(330, 430),
-    y: system.hub.y - r.range(280, 420),
+    x: spot.x,
+    y: spot.y,
     size: 10,
     hexagon: r.range(100, 125),
     turn: r.range(-0.25, 0.25),
     // Su círculo grande de puntos, un poco desplazado hacia fuera.
-    halo: { dx: capitalSide * r.range(60, 120), dy: r.range(20, 80), radius: r.range(170, 220) },
+    halo: { dx: spot.side * r.range(60, 120), dy: r.range(20, 80), radius: r.range(170, 220) },
     name: nameOf(r).toUpperCase(),
     code: r.range(10, 99).toFixed(5),
-    side: capitalSide,
+    // La etiqueta, hacia fuera del hub, salvo que no quepa en el mapa.
+    side: spot.x > WIDTH - 380 ? -1 : spot.x < 380 ? 1 : spot.side,
   };
-  system.routes.push({ from: system.hub, to: system.capital, color: 'white' });
-  system.routes.push({ from: system.jumps[Math.max(0, hubIndex - 2)], to: system.capital, color: 'white' });
+  system.routes.push({ from: system.hub, to: system.capital, color: 'light' });
+  system.routes.push({ from: system.jumps[Math.max(0, hubIndex - 2)], to: system.capital, color: 'light' });
 
   // ---- El número de la carta, abajo a la derecha (su esquina queda libre).
   system.number = { x: WIDTH - 90, y: HEIGHT - 90 };
@@ -144,7 +187,7 @@ export function generate(seed) {
   // ---- Los planetas menores, por todo el mapa, sin pisar a los grandes, ni las etiquetas
   // de los jump points (su franja, de punta a punta), ni el número. Primero se decide cómo
   // es cada uno (con su órbita, ocupa más) y luego se le busca sitio.
-  const taken = [...system.jumps, system.capital].map((o) => ({ x: o.x, y: o.y, reach: 40 }));
+  const taken = [...system.jumps.map((o) => ({ x: o.x, y: o.y, reach: 40 })), { x: system.capital.x, y: system.capital.y, reach: system.capital.hexagon + 10 }];
   const n = system.number;
   const labels = system.jumps.map((j) => ({ left: Math.min(j.x, j.x + j.side * (j.reach + 40)), right: Math.max(j.x, j.x + j.side * (j.reach + 40)), y: j.y }));
   const capitalEnd = system.capital.x + system.capital.side * (system.capital.hexagon + 270);
@@ -153,10 +196,10 @@ export function generate(seed) {
     taken.every((o) => Math.hypot(o.x - px, o.y - py) > reach + o.reach + 30) &&
     labels.every((l) => px < l.left - reach || px > l.right + reach || Math.abs(py - l.y) > reach + 24) &&
     !(px > n.x - 160 - reach && py > n.y - 80 - reach);
-  for (let k = 0, tries = 0; k < 26 && tries < 600; tries++) {
+  for (let k = 0, tries = 0; k < planetCount && tries < 600; tries++) {
     const planet = {
       size: r.range(4.5, 9),
-      color: r.weighted([['green', 5], ['white', 3], ['lime', 3]]),
+      color: r.weighted([['primary', 5], ['light', 3], ['accent', 3]]),
       code: r.chance(0.45) ? codeOf(r) : null,
     };
     // Algunos, con una órbita amplia y una luna que la recorre (y alguno, dos).
@@ -164,7 +207,7 @@ export function generate(seed) {
       planet.orbit = {
         radius: r.range(45, 120),
         dotted: r.chance(0.6),
-        color: r.weighted([['green', 3], ['white', 2], ['lime', 1]]),
+        color: r.weighted([['primary', 3], ['light', 2], ['accent', 1]]),
         moons: Array.from({ length: r.chance(0.25) ? 2 : 1 }, () => ({
           phase: r.range(0, Math.PI * 2),
           // Radianes por segundo.
@@ -188,10 +231,10 @@ export function generate(seed) {
   // Lunas también en los círculos del hub: puntitos que van dando la vuelta.
   system.hub.moons = system.hub.rings
     .filter(() => r.chance(0.6))
-    .map((radius) => ({ radius, phase: r.range(0, Math.PI * 2), speed: (r.chance(0.5) ? 1 : -1) * (6 / radius), size: r.range(2.5, 4), color: r.pick(['green', 'white', 'lime']) }));
+    .map((radius) => ({ radius, phase: r.range(0, Math.PI * 2), speed: (r.chance(0.5) ? 1 : -1) * (6 / radius), size: r.range(2.5, 4), color: r.pick(['primary', 'light', 'accent']) }));
 
-  // ---- La corriente: una gran curva verde de arriba abajo (sus puntos de paso; draw.js
-  // la suaviza), y uno o dos arcos sueltos alrededor de algún jump point.
+  // ---- La corriente: una gran curva de arriba abajo (sus puntos de paso; draw.js la
+  // suaviza).
   const flow = [];
   const flowStart = r.range(0.2, 0.8);
   for (let k = 0; k <= 6; k++) {
@@ -199,11 +242,6 @@ export function generate(seed) {
     flow.push({ x: WIDTH * (flowStart + Math.sin(t * Math.PI * r.range(1.2, 2) + r.range(-0.4, 0.4)) * 0.35), y: -100 + t * (HEIGHT + 200) });
   }
   system.flow = flow;
-  for (let k = 0; k < r.int(1, 2); k++) {
-    const around = r.pick(system.jumps);
-    const start = r.range(0, Math.PI * 2);
-    system.arcs.push({ x: around.x + r.range(-60, 60), y: around.y + r.range(-60, 60), radius: r.range(110, 180), start, end: start + r.range(1, 2.2), color: 'green' });
-  }
 
   // ---- El manto de estrellas, capa a capa. Cada capa ocupa lo que recorre su parallax:
   // el mapa encogido a su profundidad, más un margen alrededor.
@@ -216,7 +254,7 @@ export function generate(seed) {
         layer,
         x: r.range(-STAR_MARGIN, WIDTH * depth + STAR_MARGIN),
         y: r.range(-STAR_MARGIN, HEIGHT * depth + STAR_MARGIN),
-        color: r.weighted([['green', 3], ['white', 3], ['lime', 1.6], ['navy', 2.6]]),
+        color: r.weighted([['primary', 3], ['light', 3], ['accent', 1.6], ['faint', 2.6]]),
         ring: r.chance(0.35),
         size: r.range(0.9, 2.1) * (0.7 + depth * 0.5),
         // Algunas titilan: con qué ritmo y desde cuándo.
@@ -224,9 +262,15 @@ export function generate(seed) {
         phase: r.range(0, Math.PI * 2),
       });
     }
-    // Cruces y chevrones, en la capa más cercana del manto.
+    // Cruces, en todas las capas, de tamaños muy distintos: casi todas pequeñas, algunas
+    // medianas y pocas grandes (y las grandes, en las capas cercanas); casi todas del color
+    // más apagado, alguna del principal.
+    for (let k = 0; k < Math.round(total * 0.07); k++) {
+      const size = r.weighted([[r.range(2, 4), 6], [r.range(5, 8), 3], [r.range(9, 14) * depth, 1]]);
+      system.crosses.push({ layer, x: r.range(-STAR_MARGIN, w - STAR_MARGIN), y: r.range(-STAR_MARGIN, h - STAR_MARGIN), size, color: r.chance(0.15) ? 'primary' : 'faint' });
+    }
+    // Y chevrones, en la capa más cercana del manto.
     if (layer === LAYERS.length - 1) {
-      for (let k = 0; k < Math.round(total * 0.08); k++) system.crosses.push({ layer, x: r.range(-STAR_MARGIN, w - STAR_MARGIN), y: r.range(-STAR_MARGIN, h - STAR_MARGIN), size: r.range(4, 6) });
       for (let k = 0; k < Math.round(total * 0.025); k++) {
         system.chevrons.push({
           layer,
@@ -234,7 +278,7 @@ export function generate(seed) {
           y: r.range(-STAR_MARGIN, h - STAR_MARGIN),
           // Un par hacia los lados («< >»), uno hacia arriba y abajo, o los cuatro.
           kind: r.weighted([['across', 2], ['updown', 1.2], ['all', 1]]),
-          color: r.chance(0.6) ? 'green' : 'navy',
+          color: r.chance(0.6) ? 'primary' : 'faint',
           gap: r.range(8, 14),
         });
       }

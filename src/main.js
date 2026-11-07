@@ -61,6 +61,11 @@ let system = null;
 function open(seed, { replace = false } = {}) {
   system = generate(seed);
   if (numberLabel) numberLabel.textContent = `#${seed}`;
+  // Los colores de la página (el pie), los de la paleta de esta carta.
+  const style = document.documentElement.style;
+  style.setProperty('--page', system.palette.page);
+  style.setProperty('--ink', system.palette.light);
+  style.setProperty('--accent', system.palette.accent);
   const hash = `#${seed}`;
   if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null, '', location.pathname + location.search + hash);
   home();
@@ -209,7 +214,7 @@ function tap(sx, sy, now) {
   }
   if (!best) return;
   const kind = best === system.capital ? 'capital' : best.hub ? 'hub' : system.jumps.includes(best) ? 'jump' : 'planet';
-  calls.push({ x: best.x, y: best.y, age: 0, color: best.color ?? 'lime' });
+  calls.push({ x: best.x, y: best.y, age: 0, color: best.color ?? 'accent' });
   sound.ping(kind, (sx / cam.width) * 2 - 1);
 }
 
@@ -322,7 +327,7 @@ function drawCalls(ctx, dt, dpr) {
     }
     const t = call.age / CALL_LENGTH;
     ctx.globalAlpha = 1 - t;
-    ctx.strokeStyle = call.color === 'green' ? '#16b06c' : call.color === 'white' ? '#f3f1ea' : '#c4dc3c';
+    ctx.strokeStyle = system.palette[call.color];
     ctx.lineWidth = 1.4 / cam.zoom;
     ctx.beginPath();
     ctx.arc(call.x, call.y, 12 + (1 - Math.pow(1 - t, 3)) * CALL_RADIUS, 0, Math.PI * 2);
@@ -333,4 +338,4 @@ function drawCalls(ctx, dt, dpr) {
 
 new p5(sketch);
 
-setupShare(canvas, () => {}, () => ({ seed: system.seed }));
+setupShare(canvas, () => {}, () => ({ seed: system.seed, palette: system.palette }));
