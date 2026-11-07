@@ -31,6 +31,8 @@ import '../style.css';
 // El zoom: el más cercano, y cuánto se ve del mapa al empezar (el ancho de la pantalla
 // cubre esa parte de su ancho), sin pasar de unos límites para que se lea.
 const ZOOM_MAX = 3;
+// Cuánto cabe al alejarse del todo (1 = la carta justo entera; menos, con margen).
+const ZOOM_OUT = 0.92;
 const START_SHARE = 0.75;
 const START_ZOOM = [0.6, 1.1];
 // Manteniendo pulsado: lo que espera antes de acercarse (segundos), cuánto puede moverse
@@ -84,7 +86,8 @@ const cam = { x: WIDTH / 2, y: HEIGHT / 2, zoom: 1, width: 1, height: 1, shiftX:
 let target = { x: 0, y: 0, zoom: 1 };
 let returning = 0;
 const startZoom = () => Math.max(START_ZOOM[0], Math.min(START_ZOOM[1], cam.width / (WIDTH * START_SHARE)));
-const minZoom = () => Math.min(startZoom(), Math.max(cam.width / WIDTH, cam.height / HEIGHT) * 0.9);
+// Lo más lejos: la carta entera en la pantalla, con algo de aire.
+const minZoom = () => Math.min(startZoom(), Math.min(cam.width / WIDTH, cam.height / HEIGHT) * ZOOM_OUT);
 function home() {
   target = { x: system.hub.x, y: system.hub.y - cam.height * 0.08 / startZoom(), zoom: startZoom() };
 }
