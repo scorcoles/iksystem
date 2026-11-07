@@ -85,6 +85,7 @@ const wideScreen = () => cam.width > cam.height;
 function open(seed, { replace = false } = {}) {
   system = generate(seed, wideScreen());
   life = createLife(system, sound);
+  routeLabel = null;
   select(null);
   if (numberLabel) numberLabel.textContent = `#${seed}`;
   // Los colores de la página (el pie), los de la paleta de esta carta.
@@ -176,6 +177,8 @@ canvas.addEventListener('pointerdown', (e) => {
 canvas.addEventListener('pointermove', (e) => {
   const at = local(e);
   // Sin pulsar, con ratón: el parallax sigue al cursor.
+  if (e.pointerType === 'mouse') mouse = at;
+  else mouse = null;
   if (e.pointerType === 'mouse') pointerShift = { x: (at.x / cam.width - 0.5) * PARALLAX, y: (at.y / cam.height - 0.5) * PARALLAX };
   if (!pointers.has(e.pointerId)) return;
   const before = pointers.get(e.pointerId);
@@ -271,7 +274,10 @@ function tap(sx, sy, now) {
     }
   }
   if (!best) {
-    select(null);
+    // ¿Una ruta? Entonces, su distancia; si no, nada: se cierra la ficha.
+    const route = routeAt(sx, sy);
+    if (route) showRoute(route, at);
+    else select(null);
     return;
   }
   select(best);
@@ -413,10 +419,95 @@ const sketch = (p) => {
   };
 };
 
+// ---- La distancia de una ruta: al tocarla, se ilumina y aparece su distancia a lo largo
+// de ella (en las unidades de los jump points). Con el ratón, se queda mientras esté encima;
+// al irse (o con el dedo, desde el toque), se apaga pasados ROUTE_STAY segundos.
+const ROUTE_REACH = 10;
+const ROUTE_STAY = 3;
+const ROUTE_FADE = 0.6;
+let mouse = null;
+let routeLabel = null;
+// Lo lejos (en píxeles de pantalla) que está un punto de la pantalla de una ruta.
+function routeDistance(route, sx, sy) {
+  const at = toMap(sx, sy);
+  const { from: a, to: b } = route;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const t = Math.max(0, Math.min(1, ((at.x - a.x) * dx + (at.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(at.x - (a.x + dx * t), at.y - (a.y + dy * t)) * cam.zoom;
+}
+function routeAt(sx, sy) {
+  let best = null;
+  let bestDistance = ROUTE_REACH;
+  for (const route of system.routes) {
+    const d = routeDistance(route, sx, sy);
+    if (d < bestDistance) {
+      best = route;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+// «at»: dónde se tocó (en el mapa): ahí va la distancia (sin pegarse a las puntas).
+function showRoute(route, at) {
+  const { from: a, to: b } = route;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const t = Math.max(0.15, Math.min(0.85, ((at.x - a.x) * dx + (at.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+  routeLabel = { route, t, near: performance.now() };
+  sound.ping('jump', 0);
+}
+function drawRoute(ctx) {
+  if (!routeLabel) return;
+  const now = performance.now();
+  if (mouse && routeDistance(routeLabel.route, mouse.x, mouse.y) < ROUTE_REACH * 1.5) routeLabel.near = now;
+  const away = (now - routeLabel.near) / 1000 - ROUTE_STAY;
+  const alpha = away <= 0 ? 1 : 1 - away / ROUTE_FADE;
+  if (alpha <= 0) {
+    routeLabel = null;
+    return;
+  }
+  const { from: a, to: b } = routeLabel.route;
+  const px = 1 / cam.zoom;
+  const colors = system.palette;
+  ctx.globalAlpha = alpha;
+  // La ruta, iluminada.
+  ctx.strokeStyle = colors.accent;
+  ctx.lineWidth = 2 * px;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+  // La distancia, donde se tocó, paralela a la ruta (y siempre al derecho), un poco por
+  // encima.
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  let angle = Math.atan2(b.y - a.y, b.x - a.x);
+  if (angle > Math.PI / 2) angle -= Math.PI;
+  if (angle < -Math.PI / 2) angle += Math.PI;
+  ctx.save();
+  ctx.translate(a.x + (b.x - a.x) * routeLabel.t, a.y + (b.y - a.y) * routeLabel.t);
+  ctx.rotate(angle);
+  ctx.scale(px, px);
+  const text = `Δ ${(d / COORD_UNIT).toFixed(3)}`;
+  ctx.font = `13px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  // Un fondo del color de la página, para que se lea sobre lo que haya.
+  const w = ctx.measureText(text).width;
+  ctx.fillStyle = colors.page;
+  ctx.fillRect(-w / 2 - 5, -24, w + 10, 17);
+  ctx.fillStyle = colors.accent;
+  ctx.fillText(text, 0, -11);
+  ctx.restore();
+  ctx.textAlign = 'start';
+  ctx.globalAlpha = 1;
+}
+
 // Lo que pasa sin tocar (life.js), con la cámara de la carta.
 function drawLife(ctx, dpr) {
   ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, dpr * (cam.width / 2 - cam.x * cam.zoom), dpr * (cam.height / 2 - cam.y * cam.zoom));
   life.draw(ctx, 1 / cam.zoom);
+  drawRoute(ctx);
   // El cuerpo de la ficha: cuatro esquinas alrededor, que respiran.
   if (selected) {
     const px = 1 / cam.zoom;
