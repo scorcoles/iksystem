@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iksystem</title>
+    <meta name="description" content="iksystem: una carta estelar viva, con planetas, lunas, rutas y jump points sobre un manto de estrellas. Un experimento de VERTIK." />
+  </head>
+  <body>
+    <!-- La carta, a toda la pantalla; encima, arriba el símbolo y los botones, y abajo el
+         pie entre dos líneas. -->
+    <main class="panel">
+      <canvas data-iksystem aria-label="iksystem: una carta estelar con planetas, lunas, rutas y jump points sobre un manto de estrellas" role="img"></canvas>
+    </main>
+
+    <header class="top">
+      <!-- En la web de VERTIK, aquí va su símbolo. -->
+      <a class="brand" href="https://www.vertik.net/">VERTIK</a>
+      <!-- Arriba a la derecha: el sonido (src/sound.js), apagado de entrada, y compartir una
+           foto (src/share.js; si el navegador no sabe compartir imágenes, no aparece). -->
+      <div class="tools">
+        <button type="button" class="sound" data-sound aria-pressed="false" aria-label="Encender el sonido">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9h3.5L12 4.5v15L6.5 15H3z" fill="currentColor" stroke="none" />
+            <path class="sound__on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4" />
+            <path class="sound__off" d="M15.8 9.2l5.2 5.6M21 9.2l-5.2 5.6" />
+          </svg>
+        </button>
+        <button type="button" class="share" data-share hidden aria-label="Compartir una imagen">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M8.6 10.5 15.4 6.5M8.6 13.5l6.8 4" fill="none" />
+            <circle cx="18" cy="5" r="3" stroke="none" />
+            <circle cx="6" cy="12" r="3" stroke="none" />
+            <circle cx="18" cy="19" r="3" stroke="none" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <footer class="foot">
+      <p>
+        <span class="foot__tag">iksystem</span><span class="foot__number" data-number></span>
+        Arrastra para explorar y mantén para acercarte. Toca un planeta para llamarlo<span class="foot__sep">·</span><wbr /><span class="foot__modes"><button type="button" data-mode-prev aria-label="Carta anterior">← Prev</button><span class="foot__sep">·</span><button type="button" data-mode-next aria-label="Carta siguiente">Next →</button></span>
+      </p>
+    </footer>
+
+    <!-- Un módulo: Vite sigue sus «import» y sirve p5.js desde node_modules. -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
